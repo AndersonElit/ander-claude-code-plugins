@@ -159,7 +159,11 @@ public class ApplicationConfig {
                 createRabbitConsumerFiles(rootPath, safeProjectName);
             }
 
-            // 3. Crear .gitignore
+            // 3. Crear archivos .env y .env.example
+            Files.writeString(rootPath.resolve(".env"), getEnvContent());
+            Files.writeString(rootPath.resolve(".env.example"), getEnvExampleContent());
+
+            // 4. Crear .gitignore
             String gitIgnore = """
 target/
 !.mvn/wrapper/maven-wrapper.jar
@@ -181,6 +185,7 @@ hs_err_pid*
 .settings/
 bin/
 .vscode/
+.env
 """;
             Files.writeString(rootPath.resolve(".gitignore"), gitIgnore);
 
@@ -200,23 +205,87 @@ bin/
         if ("mongo".equalsIgnoreCase(database)) {
             yaml.append("  data:\n");
             yaml.append("    mongodb:\n");
-            yaml.append("      uri: mongodb://localhost:27017/mydb\n");
+            yaml.append("      uri: ${MONGODB_URI}\n");
         } else {
             yaml.append("  r2dbc:\n");
-            yaml.append("    url: r2dbc:postgresql://localhost:5432/mydb\n");
-            yaml.append("    username: postgres\n");
-            yaml.append("    password: password\n");
+            yaml.append("    url: ${R2DBC_URL}\n");
+            yaml.append("    username: ${DB_USERNAME}\n");
+            yaml.append("    password: ${DB_PASSWORD}\n");
         }
         if ("rabbit-producer".equalsIgnoreCase(messagingSystem) || "rabbit-consumer".equalsIgnoreCase(messagingSystem)) {
             yaml.append("  rabbitmq:\n");
-            yaml.append("    host: localhost\n");
-            yaml.append("    port: 5672\n");
-            yaml.append("    username: guest\n");
-            yaml.append("    password: guest\n");
+            yaml.append("    host: ${RABBITMQ_HOST}\n");
+            yaml.append("    port: ${RABBITMQ_PORT}\n");
+            yaml.append("    username: ${RABBITMQ_USERNAME}\n");
+            yaml.append("    password: ${RABBITMQ_PASSWORD}\n");
         }
         yaml.append("server:\n");
-        yaml.append("  port: 8080\n");
+        yaml.append("  port: ${SERVER_PORT}\n");
         return yaml.toString();
+    }
+
+    private String getEnvContent() {
+        StringBuilder env = new StringBuilder();
+        env.append("# ===================================================================\n");
+        env.append("# Environment Variables - ").append(projectName).append("\n");
+        env.append("# ===================================================================\n");
+        env.append("# IMPORTANT: This file contains sensitive credentials.\n");
+        env.append("# DO NOT commit this file to version control.\n");
+        env.append("# Copy .env.example to .env and fill in the actual values.\n");
+        env.append("# ===================================================================\n\n");
+
+        env.append("# Server\n");
+        env.append("SERVER_PORT=8080\n\n");
+
+        env.append("# Database\n");
+        if ("mongo".equalsIgnoreCase(database)) {
+            env.append("MONGODB_URI=mongodb://localhost:27017/mydb\n");
+        } else {
+            env.append("R2DBC_URL=r2dbc:postgresql://localhost:5432/mydb\n");
+            env.append("DB_USERNAME=postgres\n");
+            env.append("DB_PASSWORD=password\n");
+        }
+
+        if ("rabbit-producer".equalsIgnoreCase(messagingSystem) || "rabbit-consumer".equalsIgnoreCase(messagingSystem)) {
+            env.append("\n# RabbitMQ\n");
+            env.append("RABBITMQ_HOST=localhost\n");
+            env.append("RABBITMQ_PORT=5672\n");
+            env.append("RABBITMQ_USERNAME=guest\n");
+            env.append("RABBITMQ_PASSWORD=guest\n");
+        }
+
+        return env.toString();
+    }
+
+    private String getEnvExampleContent() {
+        StringBuilder env = new StringBuilder();
+        env.append("# ===================================================================\n");
+        env.append("# Environment Variables Template - ").append(projectName).append("\n");
+        env.append("# ===================================================================\n");
+        env.append("# Copy this file to .env and fill in the actual values.\n");
+        env.append("# ===================================================================\n\n");
+
+        env.append("# Server\n");
+        env.append("SERVER_PORT=8080\n\n");
+
+        env.append("# Database\n");
+        if ("mongo".equalsIgnoreCase(database)) {
+            env.append("MONGODB_URI=mongodb://localhost:27017/mydb\n");
+        } else {
+            env.append("R2DBC_URL=r2dbc:postgresql://localhost:5432/mydb\n");
+            env.append("DB_USERNAME=\n");
+            env.append("DB_PASSWORD=\n");
+        }
+
+        if ("rabbit-producer".equalsIgnoreCase(messagingSystem) || "rabbit-consumer".equalsIgnoreCase(messagingSystem)) {
+            env.append("\n# RabbitMQ\n");
+            env.append("RABBITMQ_HOST=localhost\n");
+            env.append("RABBITMQ_PORT=5672\n");
+            env.append("RABBITMQ_USERNAME=\n");
+            env.append("RABBITMQ_PASSWORD=\n");
+        }
+
+        return env.toString();
     }
 
     private String getRootPomTemplate(String name, String dbType, String messaging) {
@@ -253,6 +322,11 @@ bin/
     <modules>
 %s    </modules>
     <dependencies>
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+        </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>

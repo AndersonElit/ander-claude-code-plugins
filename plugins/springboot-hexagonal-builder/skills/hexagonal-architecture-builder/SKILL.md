@@ -81,6 +81,9 @@ Give the user a concise summary of the generated structure:
 ```
 <service-name>/
 ├── pom.xml                              # Parent POM (Spring Boot 3.4.1, Java 21)
+├── .env                                 # Environment variables (credentials, connections) — NOT committed to git
+├── .env.example                         # Template without secrets — committed to git for team reference
+├── .gitignore                           # Includes .env exclusion
 ├── domain/model/                        # Pure domain — no framework dependencies
 ├── application/use-cases/               # Business logic orchestration
 ├── infrastructure/
@@ -90,12 +93,37 @@ Give the user a concise summary of the generated structure:
 │   └── entry-points/
 │       ├── rest-api/                    # REST controllers (WebFlux)
 │       ├── app/                         # MainApplication + config (depends on rest-api)
+│       │   └── src/main/resources/
+│       │       └── application.yml      # Uses ${ENV_VARS} placeholders resolved from .env
 │       └── rabbit-consumer/             # (if selected)
 ```
 
 **Dependency flow:** rest-api/entry-points → use-cases → domain ← driven-adapters (app wires everything)
 
 Explain that `domain/model` is the core — it has zero framework dependencies. Everything else depends inward toward it.
+
+#### Environment Variables (.env)
+
+The project uses **spring-dotenv** (`me.paulschwarz:spring-dotenv`) to load environment variables from a `.env` file at the project root. The `application.yml` references variables using `${VARIABLE_NAME}` syntax.
+
+**Generated .env variables** (vary by chosen database/messaging):
+
+| Variable | Description | Default Value |
+|----------|-------------|---------------|
+| `SERVER_PORT` | Application server port | `8080` |
+| `R2DBC_URL` | R2DBC connection URL (PostgreSQL) | `r2dbc:postgresql://localhost:5432/mydb` |
+| `DB_USERNAME` | Database username (PostgreSQL) | `postgres` |
+| `DB_PASSWORD` | Database password (PostgreSQL) | `password` |
+| `MONGODB_URI` | MongoDB connection URI (MongoDB) | `mongodb://localhost:27017/mydb` |
+| `RABBITMQ_HOST` | RabbitMQ host (if messaging selected) | `localhost` |
+| `RABBITMQ_PORT` | RabbitMQ port (if messaging selected) | `5672` |
+| `RABBITMQ_USERNAME` | RabbitMQ username (if messaging selected) | `guest` |
+| `RABBITMQ_PASSWORD` | RabbitMQ password (if messaging selected) | `guest` |
+
+**Key rules:**
+- `.env` is in `.gitignore` — never committed to version control
+- `.env.example` IS committed — serves as documentation for the team (credentials left blank)
+- When adding new infrastructure in Phase 2 or Phase 3, always add the corresponding variables to `.env`, `.env.example`, and reference them in `application.yml` with `${VARIABLE_NAME}`
 
 ### Step 6: Offer Next Steps
 
@@ -519,28 +547,29 @@ The adapter class should:
 
 #### 2e. Update `application.yml`
 
-Add the corresponding configuration block to `infrastructure/entry-points/app/src/main/resources/application.yml`.
+Add the corresponding configuration block to `infrastructure/entry-points/app/src/main/resources/application.yml`. **Always use `${VARIABLE_NAME}` placeholders** — never hardcode credentials or connection strings.
 
 Examples:
 ```yaml
 # MySQL R2DBC
 spring:
   r2dbc:
-    url: r2dbc:mysql://localhost:3306/mydb
-    username: root
-    password: password
+    url: ${R2DBC_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
 # Redis
 spring:
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
 
 # Kafka
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -555,19 +584,39 @@ spring:
   cloud:
     aws:
       region:
-        static: us-east-1
+        static: ${AWS_REGION}
       credentials:
         access-key: ${AWS_ACCESS_KEY}
         secret-key: ${AWS_SECRET_KEY}
       sqs:
-        endpoint: http://localhost:4566  # LocalStack
+        endpoint: ${AWS_SQS_ENDPOINT}
 ```
 
-#### 2f. Register the module in root `pom.xml`
+#### 2f. Update `.env` and `.env.example`
+
+For every new `${VARIABLE_NAME}` added to `application.yml`, add the corresponding entry to both files at the project root:
+
+- **`.env`**: Add the variable with a sensible local/development default value
+- **`.env.example`**: Add the variable with the default value for non-sensitive settings, and leave the value blank for credentials/secrets
+
+Example for Redis:
+```bash
+# .env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# .env.example
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+```
+
+#### 2g. Register the module in root `pom.xml`
 
 Add the new `<module>` entry in the `<modules>` section of the root `pom.xml`.
 
-#### 2g. Add dependency in `entry-points/app` POM
+#### 2h. Add dependency in `entry-points/app` POM
 
 The app module must depend on the new module so Spring Boot wires it at runtime:
 ```xml
@@ -624,9 +673,13 @@ Add a new `else if` branch for the new module path with its specific Maven depen
 
 #### 3d. Update `getYamlContent()` — application.yml generation
 
-Add the YAML configuration block for the new technology. Follow the pattern of the existing database and messaging conditions.
+Add the YAML configuration block for the new technology using `${VARIABLE_NAME}` placeholders. Follow the pattern of the existing database and messaging conditions. **Never hardcode credentials or connection strings.**
 
-#### 3e. Create file generation method (if the technology needs config/adapter classes)
+#### 3e. Update `getEnvContent()` and `getEnvExampleContent()` — .env generation
+
+Add the corresponding environment variables for the new technology. In `getEnvContent()` include sensible development defaults. In `getEnvExampleContent()` leave credential values blank. Follow the same conditional pattern used in `getYamlContent()`.
+
+#### 3f. Create file generation method (if the technology needs config/adapter classes)
 
 If the technology requires boilerplate Java files (like RabbitMQ does), create a new method following the pattern of `createRabbitProducerFiles()` or `createRabbitConsumerFiles()`:
 
@@ -649,7 +702,7 @@ private void create<Tech>Files(Path rootPath, String safeProjectName) throws IOE
 
 Call this method from `run()` after the module creation loop, following the same pattern as the RabbitMQ file creation calls.
 
-#### 3f. Update `getRootPomTemplate()` — module listing
+#### 3g. Update `getRootPomTemplate()` — module listing
 
 Add the conditional `<module>` inclusion for the new technology in the `getRootPomTemplate()` method, following the existing pattern for RabbitMQ modules.
 
@@ -683,12 +736,13 @@ User: "Create a users service with MySQL"
   1. Run scaffold with --database=postgres (closest match for structure)
   2. Replace postgres module with mysql module in the generated project:
      - Create infrastructure/driven-adapters/mysql/ with R2DBC MySQL deps
-     - Update application.yml with r2dbc:mysql:// URL
+     - Update application.yml with ${R2DBC_URL}, ${DB_USERNAME}, ${DB_PASSWORD} (reuse same vars, change default URL)
+     - Update .env and .env.example with r2dbc:mysql://localhost:3306/mydb default
      - Update root pom.xml module list
      - Remove postgres module
   3. Update MavenHexagonalScaffold.java:
      - Add "mysql" to --database description
-     - Add mysql branch in run(), getModulePomTemplate(), getYamlContent(), getRootPomTemplate()
+     - Add mysql branch in run(), getModulePomTemplate(), getYamlContent(), getEnvContent(), getEnvExampleContent(), getRootPomTemplate()
   4. Verify both the project and a fresh scaffold generation compile
 ```
 
@@ -703,11 +757,12 @@ User: "I need a microservice with Kafka for publishing events"
      - POM with spring-kafka and reactor-kafka dependencies
      - KafkaConfig.java with ProducerFactory and ReactiveKafkaProducerTemplate beans
      - KafkaMessagePublisher.java implementing a domain port
-     - Update application.yml with spring.kafka config
+     - Update application.yml with ${KAFKA_BOOTSTRAP_SERVERS} placeholder
+     - Update .env and .env.example with KAFKA_BOOTSTRAP_SERVERS=localhost:9092
      - Register module in root pom.xml and app module dependencies
   3. Update MavenHexagonalScaffold.java:
      - Add "kafka-producer" to --messaging-system description
-     - Add kafka-producer branch in run(), getModulePomTemplate(), getYamlContent(), getRootPomTemplate()
+     - Add kafka-producer branch in run(), getModulePomTemplate(), getYamlContent(), getEnvContent(), getEnvExampleContent(), getRootPomTemplate()
      - Create createKafkaProducerFiles() method
   4. Verify compilation
 ```
@@ -722,7 +777,8 @@ User: "Add Redis caching to my existing ms-users project"
      - POM with spring-boot-starter-data-redis-reactive
      - RedisConfig.java with ReactiveRedisTemplate bean
      - RedisCacheAdapter.java
-     - Update application.yml with spring.data.redis config
+     - Update application.yml with ${REDIS_HOST}, ${REDIS_PORT}, ${REDIS_PASSWORD} placeholders
+     - Update .env and .env.example with Redis variables (host=localhost, port=6379, password blank)
      - Register in root pom.xml and app module dependencies
   2. Update MavenHexagonalScaffold.java:
      - Add a new --cache option (since Redis is not a primary DB replacement here)
