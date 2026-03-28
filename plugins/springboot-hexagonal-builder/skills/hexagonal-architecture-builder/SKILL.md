@@ -362,6 +362,30 @@ entry-points/app      → depends on use-cases + driven-adapters (wires everythi
 - Entry points depend on use case interfaces, NEVER on domain ports directly
 - Only the app module (entry-points/app) wires adapters to ports via Spring DI
 
+### Supabase Database Modifications (When MCP is Available)
+
+During microservice development, if the Supabase MCP server is connected and the user's project uses a Supabase-hosted PostgreSQL database, you can modify the database schema directly when needed. This is useful when:
+
+- Adding a new domain entity that requires a new table
+- A use case requires altering an existing table (adding columns, constraints, indexes)
+- The driven adapter needs database objects that don't exist yet (e.g., missing table for a new repository)
+
+**Workflow:**
+
+1. **Detect the need** — When creating a driven adapter (repository) for an entity and the corresponding table doesn't exist in Supabase, inform the user:
+   > "The table `<table_name>` doesn't exist yet in Supabase. Would you like me to create it?"
+
+2. **Generate and show the DDL** — Based on the domain entity and the adapter's `@Table`/`@Document` mapping, generate the CREATE TABLE statement. Show it to the user before executing.
+
+3. **Execute on approval** — Use the Supabase MCP tools to run the DDL against the project database.
+
+4. **Keep docs updated** — If a `docs/database/` directory exists with schema documentation, update it to reflect the changes.
+
+**Important rules:**
+- **Never modify the database without asking** — Always show the SQL and get explicit approval
+- **Prefer additive changes** — CREATE TABLE, ADD COLUMN, CREATE INDEX. For destructive changes (DROP, ALTER column type), warn the user about potential data loss
+- **Respect the schema design** — If `relational-db-schema-builder` was used to design the model, follow that design as the source of truth. Only suggest deviations if there's a technical reason
+
 ### Build and Run
 
 ```bash

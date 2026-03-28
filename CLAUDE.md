@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder**, which provides six skills:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.1.0), which provides six skills:
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
 - **java-development-best-practices** — Reviews, refactors, and generates Java code applying SOLID, Clean Code (KISS/DRY/YAGNI), and GoF patterns
 - **c4-architecture** — Generates C4 model architecture diagrams in Mermaid syntax
@@ -14,33 +14,34 @@ Currently the only plugin is **springboot-hexagonal-builder**, which provides si
 - **relational-db-schema-builder** — Generates relational database schema documentation, ER diagrams, DDL scripts, and data dictionaries applying normalization and design best practices
 - **openapi-doc-builder** — Generates API documentation using OpenAPI 3.x/Swagger specification, including YAML specs, endpoint references, and integration guides
 
-## Repository Structure
-
-```
-.claude-plugin/marketplace.json          # Marketplace index pointing to plugins
-plugins/springboot-hexagonal-builder/
-  .claude-plugin/plugin.json             # Plugin metadata
-  skills/
-    hexagonal-architecture-builder/SKILL.md
-    java-development-best-practices/SKILL.md
-      references/patterns-reference.md
-    c4-architecture/SKILL.md
-      references/                        # c4-syntax, common-mistakes, advanced-patterns
-    srs-document-builder/SKILL.md
-      references/                        # ieee-830-checklist, requirements-patterns
-    relational-db-schema-builder/SKILL.md
-      references/                        # normalization-guide, design-patterns
-    openapi-doc-builder/SKILL.md
-      references/                        # openapi-syntax, common-patterns
-  templates/jbang/MavenHexagonalScaffold.java   # JBang scaffold generator
-```
-
 ## Architecture
 
 - **Marketplace layer**: Root `.claude-plugin/marketplace.json` registers plugins by name/version/source path.
-- **Plugin layer**: Each plugin has `.claude-plugin/plugin.json` (name, description, version, author) and a `skills/` directory.
-- **Skill layer**: Each skill is defined by a `SKILL.md` with YAML frontmatter (`name`, `description` used for activation matching) and markdown body containing the full prompt/instructions.
+- **Plugin layer**: Each plugin has `.claude-plugin/plugin.json` (name, description, version, author, mcpServers) and a `skills/` directory.
+- **Skill layer**: Each skill is defined by a `SKILL.md` with YAML frontmatter (`name`, `description` used for activation matching) and markdown body containing the full prompt/instructions. Reference material lives in `references/` subdirectories and is loaded on demand.
+- **MCP layer**: Plugins can bundle MCP servers in `plugin.json` under `mcpServers`. These start automatically when the plugin is enabled.
 - **Templates**: The JBang scaffold (`MavenHexagonalScaffold.java`) is a self-contained Java script that generates multi-module Maven projects. It is invoked via `jbang <path>/MavenHexagonalScaffold.java --service-name=X --database=Y --messaging-system=Z`.
+
+## MCP Servers
+
+The **springboot-hexagonal-builder** plugin bundles the Supabase MCP server (`@supabase/mcp-server`) in `plugin.json`. It starts automatically when the plugin is enabled and provides tools for interacting with Supabase projects (database management, auth, storage, edge functions, etc.).
+
+**Prerequisites**: Node.js (for npx) and the environment variable `SUPABASE_ACCESS_TOKEN` set before launching Claude Code. Obtain the token from Supabase Dashboard > Account Settings > Access Tokens.
+
+### Supabase Integration Workflow
+
+The intended cross-skill workflow with Supabase is:
+
+1. **`relational-db-schema-builder`** designs the full database model (ER diagram + DDL + data dictionary) → after generation, offers to deploy the schema to Supabase on user request (Step 6 in the skill)
+2. **`hexagonal-architecture-builder`** builds the microservice → when adding entities/adapters that need new or modified tables, it can create/alter them in Supabase on user approval
+
+Key rule: **never execute DDL against Supabase without explicit user confirmation**. Always show the SQL first.
+
+## Testing Changes to the Plugin
+
+```bash
+claude --plugin-dir ./plugins/springboot-hexagonal-builder
+```
 
 ## Adding a New Plugin
 

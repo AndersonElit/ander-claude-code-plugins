@@ -350,6 +350,64 @@ Adjust output based on the target engine:
 | **CQRS** | Separate read/write models | Document both models and sync mechanism |
 | **Audit-heavy / Regulated** | Audit tables, temporal tables, immutable records | `created_by`, `modified_by`, history tables |
 
+## Step 6: Deploy to Supabase (Optional — On User Request)
+
+When the Supabase MCP server is available and the user requests it, you can deploy the designed schema directly to a Supabase project. **Never deploy automatically — always wait for explicit user confirmation.**
+
+### When to Offer Supabase Deployment
+
+After generating the DDL script (Step 5.2), ask the user:
+> "The database model is ready. Would you like me to create these tables directly in your Supabase project?"
+
+### Deployment Workflow
+
+1. **List available projects** — Use the Supabase MCP tools to list the user's Supabase projects and let them select the target project.
+
+2. **Review before executing** — Present a summary of what will be created:
+   - Tables and their columns
+   - Foreign key relationships
+   - Indexes
+   - RLS policies (if applicable)
+
+3. **Execute DDL in order** — Create objects in dependency order (parents before children):
+   - Extensions (if needed, e.g., `uuid-ossp`, `pg_trgm`)
+   - Tables with columns and constraints
+   - Indexes
+   - Comments
+
+4. **Verify creation** — After execution, query the created tables to confirm they exist and match the design.
+
+5. **Report results** — Show the user what was created successfully and flag any errors.
+
+### Supabase-Specific Considerations
+
+When the target is Supabase (PostgreSQL), apply these adjustments to the schema:
+
+| Aspect | Supabase Recommendation |
+|--------|------------------------|
+| **Primary Keys** | Prefer `UUID` with `gen_random_uuid()` — Supabase uses UUIDs natively for `auth.users` |
+| **Auth integration** | If the schema has a users/profiles table, consider referencing `auth.users(id)` instead of a standalone user table |
+| **RLS (Row Level Security)** | Suggest enabling RLS on tables that need access control. Offer to create basic policies |
+| **Timestamps** | Use `TIMESTAMPTZ` with `NOW()` defaults — Supabase handles timezone-aware timestamps well |
+| **Realtime** | Mention that tables can be enabled for Supabase Realtime if the user needs live subscriptions |
+| **Storage** | If the model includes file/image references, suggest using Supabase Storage with URL references instead of BLOBs |
+
+### What You Can Do via Supabase MCP
+
+Use the available Supabase MCP tools to:
+- **Create and alter tables** — Execute DDL statements against the project database
+- **Manage RLS policies** — Create, update, or remove Row Level Security policies
+- **Run SQL queries** — Execute arbitrary SQL for schema creation, data seeding, or verification
+- **List existing tables** — Check current schema state before making changes
+- **Manage storage buckets** — Create buckets if the schema references file storage
+
+### Important Rules
+
+- **Always ask before executing** — Never run DDL against Supabase without explicit user approval
+- **Show the SQL first** — Let the user review exactly what will be executed
+- **Handle errors gracefully** — If a table already exists, ask the user if they want to drop and recreate or skip
+- **Keep documentation in sync** — The generated docs (ER diagram, DDL script, data dictionary) remain the source of truth; Supabase is just the deployment target
+
 ## References
 
 - [references/normalization-guide.md](references/normalization-guide.md) — Normalization forms (1NF–BCNF) with examples, anti-patterns, and when to denormalize

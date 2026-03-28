@@ -1,9 +1,18 @@
 {
   "name": "springboot-hexagonal-builder",
-  "description": "Generate reactive Spring Boot microservices with Hexagonal Architecture (Ports and Adapters). Includes scaffolding via JBang, Java best practices review, and code generation following SOLID/Clean Code principles.",
-  "version": "1.0.0",
+  "description": "Generate reactive Spring Boot microservices with Hexagonal Architecture (Ports and Adapters). Includes scaffolding via JBang, Java best practices review, and code generation following SOLID/Clean Code principles. Integrates with Supabase via MCP for database management, auth, storage, and edge functions.",
+  "version": "1.1.0",
   "author": {
     "name": "AndersonElit",
     "email": "rodriarri@gmail.com"
+  },
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server"],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    }
   }
 }
