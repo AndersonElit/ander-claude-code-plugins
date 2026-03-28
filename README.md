@@ -6,17 +6,18 @@ Coleccion de plugins para [Claude Code](https://docs.anthropic.com/en/docs/claud
 
 | Plugin | Descripcion |
 |--------|-------------|
-| [springboot-hexagonal-builder](./plugins/springboot-hexagonal-builder/) | Genera microservicios reactivos con Spring Boot + Arquitectura Hexagonal, revision de codigo Java, documentacion de arquitectura C4, especificacion de requisitos ERS/SRS y modelado de bases de datos relacionales |
+| [springboot-hexagonal-builder](./plugins/springboot-hexagonal-builder/) | Genera microservicios reactivos con Spring Boot + Arquitectura Hexagonal, revision de codigo Java, documentacion de arquitectura C4, especificacion de requisitos ERS/SRS, modelado de bases de datos relacionales y documentacion de APIs OpenAPI/Swagger |
 
 ### springboot-hexagonal-builder
 
-Plugin con cinco skills para desarrollo backend en Java, documentacion de arquitectura, analisis de requisitos y modelado de datos:
+Plugin con seis skills para desarrollo backend en Java, documentacion de arquitectura, analisis de requisitos, modelado de datos y documentacion de APIs:
 
 - **hexagonal-architecture-builder** - Scaffold completo de microservicios reactivos (Spring Boot 3.4.1, Java 21, WebFlux) con Arquitectura Hexagonal usando JBang. Soporta PostgreSQL, MongoDB, RabbitMQ y permite agregar tecnologias adicionales.
 - **java-development-best-practices** - Revision, refactorizacion y generacion de codigo Java aplicando principios SOLID, Clean Code (KISS/DRY/YAGNI) y patrones GoF.
 - **c4-architecture** - Genera documentacion de arquitectura usando diagramas C4 (Context, Container, Component, Deployment, Dynamic) en sintaxis Mermaid.
 - **srs-document-builder** - Genera documentos de Especificacion de Requisitos de Software (ERS/SRS) basados en IEEE 830, con requisitos funcionales, no funcionales, casos de uso, modelo de datos y matriz de trazabilidad.
 - **relational-db-schema-builder** - Genera documentacion de esquemas de bases de datos relacionales, diagramas ER en Mermaid, scripts DDL y diccionarios de datos aplicando normalizacion y buenas practicas de diseño.
+- **openapi-doc-builder** - Genera documentacion de APIs usando especificacion OpenAPI 3.x/Swagger, incluyendo specs YAML, referencia de endpoints, guias de integracion y patrones comunes (paginacion, autenticacion, manejo de errores).
 
 ## Instalacion
 
@@ -62,11 +63,17 @@ ander-claude-code-plugins/
         │   │   └── references/
         │   │       ├── ieee-830-checklist.md
         │   │       └── requirements-patterns.md
-        │   └── relational-db-schema-builder/
-        │       ├── SKILL.md             # Skill de modelado de BD relacional
+        │   ├── relational-db-schema-builder/
+        │   │   ├── SKILL.md             # Skill de modelado de BD relacional
+        │   │   └── references/
+        │   │       ├── normalization-guide.md
+        │   │       └── design-patterns.md
+        │   └── openapi-doc-builder/
+        │       ├── SKILL.md             # Skill de documentacion API OpenAPI/Swagger
         │       └── references/
-        │           ├── normalization-guide.md
-        │           └── design-patterns.md
+        │           ├── openapi-syntax.md
+        │           ├── common-patterns.md
+        │           └── rest-principles.md
         ├── templates/
         │   └── jbang/
         │       └── MavenHexagonalScaffold.java  # Generador JBang

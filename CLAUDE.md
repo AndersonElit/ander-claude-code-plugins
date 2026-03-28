@@ -6,12 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder**, which provides five skills:
+Currently the only plugin is **springboot-hexagonal-builder**, which provides six skills:
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
 - **java-development-best-practices** — Reviews, refactors, and generates Java code applying SOLID, Clean Code (KISS/DRY/YAGNI), and GoF patterns
 - **c4-architecture** — Generates C4 model architecture diagrams in Mermaid syntax
 - **srs-document-builder** — Generates Software Requirements Specification (SRS/ERS) documents based on IEEE 830 for the requirements analysis phase
 - **relational-db-schema-builder** — Generates relational database schema documentation, ER diagrams, DDL scripts, and data dictionaries applying normalization and design best practices
+- **openapi-doc-builder** — Generates API documentation using OpenAPI 3.x/Swagger specification, including YAML specs, endpoint references, and integration guides
 
 ## Repository Structure
 
@@ -29,6 +30,8 @@ plugins/springboot-hexagonal-builder/
       references/                        # ieee-830-checklist, requirements-patterns
     relational-db-schema-builder/SKILL.md
       references/                        # normalization-guide, design-patterns
+    openapi-doc-builder/SKILL.md
+      references/                        # openapi-syntax, common-patterns
   templates/jbang/MavenHexagonalScaffold.java   # JBang scaffold generator
 ```
 
