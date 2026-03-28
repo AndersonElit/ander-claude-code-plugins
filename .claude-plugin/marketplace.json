@@ -1,6 +1,10 @@
 {
   "name": "ander-plugins",
   "description": "Repositorio personal de plugins para Claude Code",
+  "owner": {
+    "name": "AndersonElit",
+    "url": "https://github.com/AndersonElit"
+  },
   "plugins": [
     {
       "name": "springboot-hexagonal-builder",
