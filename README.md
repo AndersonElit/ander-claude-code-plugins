@@ -6,15 +6,16 @@ Coleccion de plugins para [Claude Code](https://docs.anthropic.com/en/docs/claud
 
 | Plugin | Descripcion |
 |--------|-------------|
-| [springboot-hexagonal-builder](./plugins/springboot-hexagonal-builder/) | Genera microservicios reactivos con Spring Boot + Arquitectura Hexagonal, revision de codigo Java y documentacion de arquitectura C4 |
+| [springboot-hexagonal-builder](./plugins/springboot-hexagonal-builder/) | Genera microservicios reactivos con Spring Boot + Arquitectura Hexagonal, revision de codigo Java, documentacion de arquitectura C4 y especificacion de requisitos ERS/SRS |
 
 ### springboot-hexagonal-builder
 
-Plugin con tres skills para desarrollo backend en Java y documentacion de arquitectura:
+Plugin con cuatro skills para desarrollo backend en Java, documentacion de arquitectura y analisis de requisitos:
 
 - **hexagonal-architecture-builder** - Scaffold completo de microservicios reactivos (Spring Boot 3.4.1, Java 21, WebFlux) con Arquitectura Hexagonal usando JBang. Soporta PostgreSQL, MongoDB, RabbitMQ y permite agregar tecnologias adicionales.
 - **java-development-best-practices** - Revision, refactorizacion y generacion de codigo Java aplicando principios SOLID, Clean Code (KISS/DRY/YAGNI) y patrones GoF.
 - **c4-architecture** - Genera documentacion de arquitectura usando diagramas C4 (Context, Container, Component, Deployment, Dynamic) en sintaxis Mermaid.
+- **srs-document-builder** - Genera documentos de Especificacion de Requisitos de Software (ERS/SRS) basados en IEEE 830, con requisitos funcionales, no funcionales, casos de uso, modelo de datos y matriz de trazabilidad.
 
 ## Instalacion
 
@@ -49,12 +50,17 @@ ander-claude-code-plugins/
         │   │   ├── SKILL.md             # Skill de buenas practicas
         │   │   └── references/
         │   │       └── patterns-reference.md
-        │   └── c4-architecture/
-        │       ├── SKILL.md             # Skill de diagramas C4
+        │   ├── c4-architecture/
+        │   │   ├── SKILL.md             # Skill de diagramas C4
+        │   │   └── references/
+        │   │       ├── c4-syntax.md
+        │   │       ├── common-mistakes.md
+        │   │       └── advanced-patterns.md
+        │   └── srs-document-builder/
+        │       ├── SKILL.md             # Skill de documentos ERS/SRS
         │       └── references/
-        │           ├── c4-syntax.md
-        │           ├── common-mistakes.md
-        │           └── advanced-patterns.md
+        │           ├── ieee-830-checklist.md
+        │           └── requirements-patterns.md
         ├── templates/
         │   └── jbang/
         │       └── MavenHexagonalScaffold.java  # Generador JBang
