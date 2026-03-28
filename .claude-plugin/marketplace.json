@@ -1,0 +1,11 @@
+{
+  "name": "ander-plugins",
+  "description": "Repositorio personal de plugins para Claude Code",
+  "plugins": [
+    {
+      "name": "springboot-hexagonal-builder",
+      "version": "1.0.0",
+      "source": "./plugins/springboot-hexagonal-builder"
+    }
+  ]
+}
