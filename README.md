@@ -6,17 +6,18 @@ Coleccion de plugins para [Claude Code](https://docs.anthropic.com/en/docs/claud
 
 | Plugin | Descripcion |
 |--------|-------------|
-| [springboot-hexagonal-builder](./plugins/springboot-hexagonal-builder/) | Genera microservicios reactivos con Spring Boot + Arquitectura Hexagonal, revision de codigo Java, documentacion de arquitectura C4, especificacion de requisitos ERS/SRS, modelado de bases de datos relacionales y documentacion de APIs OpenAPI/Swagger |
+| [springboot-hexagonal-builder](./plugins/springboot-hexagonal-builder/) | Genera microservicios reactivos con Spring Boot + Arquitectura Hexagonal, revision de codigo Java, documentacion de arquitectura C4, especificacion de requisitos ERS/SRS, modelado de bases de datos relacionales y NoSQL, y documentacion de APIs OpenAPI/Swagger |
 
 ### springboot-hexagonal-builder
 
-Plugin con seis skills para desarrollo backend en Java, documentacion de arquitectura, analisis de requisitos, modelado de datos y documentacion de APIs:
+Plugin con siete skills para desarrollo backend en Java, documentacion de arquitectura, analisis de requisitos, modelado de datos y documentacion de APIs:
 
 - **hexagonal-architecture-builder** - Scaffold completo de microservicios reactivos (Spring Boot 3.4.1, Java 21, WebFlux) con Arquitectura Hexagonal usando JBang. Soporta PostgreSQL, MongoDB, RabbitMQ y permite agregar tecnologias adicionales.
 - **java-development-best-practices** - Revision, refactorizacion y generacion de codigo Java aplicando principios SOLID, Clean Code (KISS/DRY/YAGNI) y patrones GoF.
 - **c4-architecture** - Genera documentacion de arquitectura usando diagramas C4 (Context, Container, Component, Deployment, Dynamic) en sintaxis Mermaid.
 - **srs-document-builder** - Genera documentos de Especificacion de Requisitos de Software (ERS/SRS) basados en IEEE 830, con requisitos funcionales, no funcionales, casos de uso, modelo de datos y matriz de trazabilidad.
 - **relational-db-schema-builder** - Genera documentacion de esquemas de bases de datos relacionales, diagramas ER en Mermaid, scripts DDL y diccionarios de datos aplicando normalizacion y buenas practicas de diseño.
+- **nosql-schema-builder** - Diseña y documenta esquemas NoSQL (MongoDB, DynamoDB, Cassandra), estructuras de colecciones, modelado de documentos (embedding vs referencing), validaciones JSON Schema, estrategias de indexacion y sharding.
 - **openapi-doc-builder** - Genera documentacion de APIs usando especificacion OpenAPI 3.x/Swagger, incluyendo specs YAML, referencia de endpoints, guias de integracion y patrones comunes (paginacion, autenticacion, manejo de errores).
 
 ## Instalacion
@@ -68,6 +69,11 @@ ander-claude-code-plugins/
         │   │   └── references/
         │   │       ├── normalization-guide.md
         │   │       └── design-patterns.md
+        │   ├── nosql-schema-builder/
+        │   │   ├── SKILL.md             # Skill de modelado de BD NoSQL
+        │   │   └── references/
+        │   │       ├── modeling-patterns.md
+        │   │       └── mongodb-best-practices.md
         │   └── openapi-doc-builder/
         │       ├── SKILL.md             # Skill de documentacion API OpenAPI/Swagger
         │       └── references/
@@ -85,6 +91,14 @@ ander-claude-code-plugins/
 - **Java 17+**
 - **JBang** - `curl -Ls https://sh.jbang.dev | bash -s - app setup`
 - **Maven** - Para compilar los proyectos generados
+- **Node.js** - Para los servidores MCP (Supabase, MongoDB)
+
+### Variables de entorno (opcionales, para servidores MCP)
+
+| Variable | Descripcion | Como obtenerla |
+|----------|-------------|----------------|
+| `SUPABASE_ACCESS_TOKEN` | Token para el MCP de Supabase | Supabase Dashboard > Account Settings > Access Tokens |
+| `MDB_MCP_CONNECTION_STRING` | Connection string para el MCP de MongoDB | Ej: `mongodb://localhost:27017` |
 
 ## Contribuir
 

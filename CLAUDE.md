@@ -6,12 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.1.0), which provides six skills:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides seven skills:
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
 - **java-development-best-practices** — Reviews, refactors, and generates Java code applying SOLID, Clean Code (KISS/DRY/YAGNI), and GoF patterns
 - **c4-architecture** — Generates C4 model architecture diagrams in Mermaid syntax
 - **srs-document-builder** — Generates Software Requirements Specification (SRS/ERS) documents based on IEEE 830 for the requirements analysis phase
 - **relational-db-schema-builder** — Generates relational database schema documentation, ER diagrams, DDL scripts, and data dictionaries applying normalization and design best practices
+- **nosql-schema-builder** — Designs and documents NoSQL database schemas (MongoDB, DynamoDB, Cassandra), collection structures, document modeling, JSON Schema validations, and indexing strategies
 - **openapi-doc-builder** — Generates API documentation using OpenAPI 3.x/Swagger specification, including YAML specs, endpoint references, and integration guides
 
 ## Architecture
@@ -24,18 +25,29 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.1.0), which pr
 
 ## MCP Servers
 
-The **springboot-hexagonal-builder** plugin bundles the Supabase MCP server (`@supabase/mcp-server`) in `plugin.json`. It starts automatically when the plugin is enabled and provides tools for interacting with Supabase projects (database management, auth, storage, edge functions, etc.).
+The **springboot-hexagonal-builder** plugin bundles two MCP servers in `plugin.json`. They start automatically when the plugin is enabled.
+
+### Supabase MCP (`@supabase/mcp-server-supabase`)
+
+Provides tools for interacting with Supabase projects (database management, auth, storage, edge functions, etc.).
 
 **Prerequisites**: Node.js (for npx) and the environment variable `SUPABASE_ACCESS_TOKEN` set before launching Claude Code. Obtain the token from Supabase Dashboard > Account Settings > Access Tokens.
 
-### Supabase Integration Workflow
+### MongoDB MCP (`@mongodb-js/mongodb-mcp-server`)
 
-The intended cross-skill workflow with Supabase is:
+Provides tools for interacting with MongoDB instances (database and collection management, querying, indexing, etc.).
 
-1. **`relational-db-schema-builder`** designs the full database model (ER diagram + DDL + data dictionary) → after generation, offers to deploy the schema to Supabase on user request (Step 6 in the skill)
-2. **`hexagonal-architecture-builder`** builds the microservice → when adding entities/adapters that need new or modified tables, it can create/alter them in Supabase on user approval
+**Prerequisites**: Node.js (for npx) and the environment variable `MDB_MCP_CONNECTION_STRING` set before launching Claude Code. Example: `MDB_MCP_CONNECTION_STRING=mongodb://localhost:27017`.
 
-Key rule: **never execute DDL against Supabase without explicit user confirmation**. Always show the SQL first.
+### Cross-Skill Database Workflow
+
+The intended cross-skill workflow with the MCP database servers is:
+
+1. **`relational-db-schema-builder`** designs relational models (ER diagram + DDL + data dictionary) → offers to deploy to Supabase on user request (Step 6)
+2. **`nosql-schema-builder`** designs NoSQL models (collection diagram + JSON Schema + indexes) → offers to deploy to MongoDB on user request (Step 6)
+3. **`hexagonal-architecture-builder`** builds the microservice → when adding entities/adapters that need new or modified tables/collections, it can create/alter them in Supabase or MongoDB on user approval
+
+Key rule: **never execute DDL/commands against Supabase or MongoDB without explicit user confirmation**. Always show the SQL/commands first.
 
 ## Testing Changes to the Plugin
 
@@ -56,7 +68,9 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 
 ## Key Conventions
 
-- SKILL.md `description` field is critical — it determines when Claude Code activates the skill. Write it as a comprehensive trigger list.
+- SKILL.md `description` field is critical — it determines when Claude Code activates the skill. Write it as a comprehensive trigger list covering both English and Spanish trigger phrases.
+- SKILL.md YAML frontmatter requires `name` and `description`. The markdown body contains the full prompt/instructions.
+- **Version sync**: When bumping the plugin version, update both `plugins/<name>/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` — they must match.
 - The hexagonal scaffold supports `--database` (postgres, mongo) and `--messaging-system` (rabbit-producer, rabbit-consumer, none). Unsupported technologies trigger Phase 3 in the skill (manual config + scaffold extension).
 - The repository language is primarily Spanish (README, comments) but skills are written in English.
 - Prerequisites for scaffold usage: Java 17+, JBang, Maven.
