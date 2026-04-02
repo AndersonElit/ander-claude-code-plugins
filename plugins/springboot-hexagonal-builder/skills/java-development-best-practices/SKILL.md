@@ -233,6 +233,39 @@ Apply KISS, DRY, and YAGNI as a filter on every decision when generating code:
 - **Config**: prefer `@ConfigurationProperties` records over scattered `@Value` annotations
 - **Tests**: name as `should<Expected>When<Condition>()`, follow Arrange-Act-Assert, mock only outbound ports
 
+### Documentation — What to Do and What NOT to Do
+
+**Never do:**
+- Run `mvn checkstyle`, `mvn pmd:check`, `mvn spotbugs:check`, or any static analysis command unless the user explicitly asks
+- Create `package-info.java` files — they are not used in this project
+
+**Always do when generating code:**
+- Add a one-line Javadoc on every generated class explaining its role in the architecture
+- Add Javadoc on public methods whose purpose is not obvious from the name alone
+- Keep comments architectural ("why this class exists, what layer it belongs to") not mechanical ("this method returns a Mono")
+
+```java
+// Domain entity — no framework
+/** Domain entity representing an order. Pure Java, no framework dependencies. */
+@Data @Builder public class Order { ... }
+
+// Output port — what infrastructure must implement
+/** Output port: persistence contract for {@link Order}. Implemented in driven-adapters. */
+public interface OrderRepository { ... }
+
+// Infrastructure entity — separate from domain
+/** R2DBC entity mapped to the {@code orders} table. Infrastructure concern only. */
+@Table("orders") public class OrderData { ... }
+
+// Port implementation
+/** Implements {@link OrderRepository} via Spring Data R2DBC. Handles domain↔data mapping. */
+@Repository public class OrderRepositoryAdapter implements OrderRepository { ... }
+
+// Use case implementation
+/** Orchestrates order business logic. Depends only on domain ports, never on adapters. */
+@Service public class OrderUseCaseImpl implements OrderUseCase { ... }
+```
+
 ### POM Dependencies
 
 When generating code that uses classes from another module, add the dependency to the module's `pom.xml`:

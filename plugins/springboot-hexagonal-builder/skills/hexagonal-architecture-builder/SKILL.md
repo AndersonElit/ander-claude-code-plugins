@@ -710,6 +710,44 @@ mvn spring-boot:run -pl infrastructure/entry-points/app   # Run the application
 
 The app starts on port 8080 by default. The starter `/hello` endpoint verifies everything works.
 
+### What NOT to Do After Generating Code
+
+- **Never run `mvn checkstyle`** or any static analysis tool (`pmd`, `spotbugs`, etc.) unless the user explicitly asks for it.
+- **Never create `package-info.java` files** in any module. They are not part of this project's conventions.
+- Instead, document generated classes using **inline Javadoc comments** directly on the class and its public methods. Every generated class must have at least a one-line Javadoc on the class declaration explaining its role in the architecture. Example:
+
+```java
+/**
+ * Domain entity representing a customer in the system.
+ * Pure Java — no framework dependencies.
+ */
+@Data
+@Builder
+public class Customer { ... }
+
+/**
+ * Output port defining the persistence contract for {@link Customer}.
+ * Implemented by the driven adapter in the infrastructure layer.
+ */
+public interface CustomerRepository { ... }
+
+/**
+ * R2DBC persistence entity mapped to the {@code customers} table.
+ * Infrastructure concern — never exposed outside the postgres adapter module.
+ */
+@Data
+@Table("customers")
+public class CustomerData { ... }
+
+/**
+ * Implements {@link CustomerRepository} using Spring Data R2DBC.
+ * Maps between {@link CustomerData} (infrastructure) and {@link Customer} (domain).
+ */
+@Repository
+@RequiredArgsConstructor
+public class CustomerRepositoryAdapter implements CustomerRepository { ... }
+```
+
 ## Examples
 
 ### Full scaffold + entity workflow
