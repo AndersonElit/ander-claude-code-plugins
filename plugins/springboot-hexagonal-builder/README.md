@@ -172,6 +172,26 @@ Si solicitas una tecnologia no soportada (MySQL, Kafka, Redis, SQS, etc.), el sk
 │               └── MessageListener.java
 ```
 
+## Documentacion del codigo generado
+
+- **No** se ejecuta `mvn checkstyle`, `mvn pmd:check`, `mvn spotbugs:check` ni ninguna herramienta de analisis estatico a menos que el usuario lo solicite explicitamente.
+- **No** se crean archivos `package-info.java`. No son parte de las convenciones de este proyecto.
+- En su lugar, cada clase generada lleva un **Javadoc inline** en la declaracion de clase explicando su rol en la arquitectura. Los comentarios son arquitecturales ("por que existe esta clase, a que capa pertenece"), no mecanicos.
+
+```java
+/** Domain entity representing a customer. Pure Java — no framework dependencies. */
+@Data @Builder public class Customer { ... }
+
+/** Output port: persistence contract for {@link Customer}. Implemented in driven-adapters. */
+public interface CustomerRepository { ... }
+
+/** R2DBC entity mapped to the {@code customers} table. Infrastructure concern only. */
+@Table("customers") public class CustomerData { ... }
+
+/** Implements {@link CustomerRepository} via Spring Data R2DBC. Handles domain↔data mapping. */
+@Repository public class CustomerRepositoryAdapter implements CustomerRepository { ... }
+```
+
 ## Convenciones de empaquetado
 
 Cada modulo Maven organiza sus clases en sub-paquetes por responsabilidad:

@@ -81,6 +81,8 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 - The hexagonal scaffold supports `--database` (postgres, mongo) and `--messaging-system` (rabbit-producer, rabbit-consumer, none). Unsupported technologies trigger Phase 3 in the skill (manual config + scaffold extension).
 - The repository language is primarily Spanish (README, comments) but skills are written in English.
 - Prerequisites for scaffold usage: Java 17+, JBang, Maven.
+- **Never run `mvn checkstyle`**, `mvn pmd:check`, `mvn spotbugs:check`, or any static analysis command after generating code unless the user explicitly asks.
+- **Never create `package-info.java` files** — they are not used in this project. Document generated classes with inline Javadoc on the class declaration instead.
 
 ## Package Structure Conventions (hexagonal projects)
 
