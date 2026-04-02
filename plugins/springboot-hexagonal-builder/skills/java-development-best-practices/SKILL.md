@@ -173,14 +173,48 @@ When writing new code, apply these principles automatically:
 
 | What you're creating | Where it goes | Package |
 |---------------------|---------------|---------|
-| Entity, Value Object | `domain/model` | `com.<safename>.model` |
-| Port interface (outbound) | `domain/model` | `com.<safename>.model` |
-| Use case interface | `application/use-cases` | `com.<safename>.usecases` |
-| Use case implementation | `application/use-cases` | `com.<safename>.usecases` |
-| Repository adapter | `driven-adapters/<db>` | `com.<safename>.<db>` |
-| REST controller | `entry-points/app` | `com.<safename>.app` |
-| Config class | `entry-points/app` | `com.<safename>.app` |
-| DTO (request/response) | `entry-points/app` | `com.<safename>.app` |
+| Domain entity | `domain/model` | `com.<safename>.model.entities` |
+| Output port interface (repository, publisher) | `domain/model` | `com.<safename>.model.ports` |
+| Domain enumeration | `domain/model` | `com.<safename>.model.enums` |
+| Domain event | `domain/model` | `com.<safename>.model.events` |
+| Domain exception | `domain/model` | `com.<safename>.model.exceptions` |
+| Value object | `domain/model` | `com.<safename>.model.valueobjects` |
+| Input port (use case interface) | `application/use-cases` | `com.<safename>.usecases` |
+| Use case implementation | `application/use-cases` | `com.<safename>.usecases.impl` |
+| R2DBC / document entity | `driven-adapters/<db>` | `com.<safename>.<db>.entities` |
+| Spring Data repository | `driven-adapters/<db>` | `com.<safename>.<db>.repositories` |
+| Repository adapter (port impl) | `driven-adapters/<db>` | `com.<safename>.<db>.adapters` |
+| Entity↔Domain mapper | `driven-adapters/<db>` | `com.<safename>.<db>.mappers` |
+| Messaging config (`@Configuration`) | `driven-adapters/<messaging>` | `com.<safename>.<messaging>.config` |
+| Message publisher adapter | `driven-adapters/<messaging>` | `com.<safename>.<messaging>.adapters` |
+| Message listener | `entry-points/<consumer>` | `com.<safename>.<consumer>` |
+| Message listener config | `entry-points/<consumer>` | `com.<safename>.<consumer>.config` |
+| REST controller | `entry-points/rest-api` | `com.<safename>.restapi` |
+| DTO (request/response) | `entry-points/rest-api` | `com.<safename>.restapi.dto` |
+| App Spring config | `entry-points/app` | `com.<safename>.app.config` |
+
+### Package Conventions
+
+These rules apply universally when placing or reviewing code in a hexagonal project:
+
+**Domain layer (`domain/model`) — never place classes in the root package:**
+- **`entities/`** — domain entities (pure Java, `@Data @Builder`, no framework annotations)
+- **`ports/`** — output port interfaces (what infrastructure must implement: repositories, publishers)
+- **`enums/`** — domain enumerations tied to business rules
+- **`events/`** — domain events (immutable snapshots: `@Value @Builder`)
+- **`exceptions/`** — domain-specific exceptions (`extends RuntimeException`)
+- **`valueobjects/`** — immutable self-validating types that wrap primitives (`@Value`)
+
+**Cross-layer rules:**
+- **`impl/`** — any class implementing an interface defined in the same module goes in `impl/`
+- **`config/`** — any `@Configuration` class goes in `config/`, regardless of the module
+- **`entities/`** (infra) — `@Table` / `@Document` persistence classes in driven-adapters go in `entities/`
+- **`repositories/`** — Spring Data repository interfaces go in `repositories/`
+- **`adapters/`** — classes that `implements` a domain port go in `adapters/`
+- **`dto/`** — request/response/DTO classes at REST entry points go in `dto/`
+- **`mappers/`** — dedicated mapper classes when mapping is non-trivial (> 3 fields or computed logic)
+
+When reviewing code, flag any class that belongs in a sub-package but sits in the module root as a packaging violation. Only create sub-packages that are actually needed — don't pre-create empty directories.
 
 ### Clean Code Principles
 

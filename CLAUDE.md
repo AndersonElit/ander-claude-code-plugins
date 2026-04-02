@@ -81,3 +81,42 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 - The hexagonal scaffold supports `--database` (postgres, mongo) and `--messaging-system` (rabbit-producer, rabbit-consumer, none). Unsupported technologies trigger Phase 3 in the skill (manual config + scaffold extension).
 - The repository language is primarily Spanish (README, comments) but skills are written in English.
 - Prerequisites for scaffold usage: Java 17+, JBang, Maven.
+
+## Package Structure Conventions (hexagonal projects)
+
+All generated code follows a consistent sub-package structure inside each Maven module. Never place all classes in the root package of a module.
+
+| Module | Class type | Sub-package | Example |
+|--------|-----------|-------------|---------|
+| `domain/model` | Domain entity | `entities` | `com.<n>.model.entities.<Entity>` |
+| `domain/model` | Output port interface | `ports` | `com.<n>.model.ports.<Entity>Repository` |
+| `domain/model` | Enumeration | `enums` | `com.<n>.model.enums.<Entity>Status` |
+| `domain/model` | Domain event | `events` | `com.<n>.model.events.<Entity>CreatedEvent` |
+| `domain/model` | Domain exception | `exceptions` | `com.<n>.model.exceptions.<Entity>NotFoundException` |
+| `domain/model` | Value object | `valueobjects` | `com.<n>.model.valueobjects.Email` |
+| `application/use-cases` | Input port (interface) | _(root)_ | `com.<n>.usecases.<Entity>UseCase` |
+| `application/use-cases` | Implementation | `impl` | `com.<n>.usecases.impl.<Entity>UseCaseImpl` |
+| `driven-adapters/postgres` | R2DBC entity | `entities` | `com.<n>.postgres.entities.<Entity>Data` |
+| `driven-adapters/postgres` | Spring Data repo | `repositories` | `com.<n>.postgres.repositories.<Entity>R2dbcRepository` |
+| `driven-adapters/postgres` | Adapter (port impl) | `adapters` | `com.<n>.postgres.adapters.<Entity>RepositoryAdapter` |
+| `driven-adapters/mongo` | Document entity | `entities` | `com.<n>.mongo.entities.<Entity>Document` |
+| `driven-adapters/mongo` | Reactive repo | `repositories` | `com.<n>.mongo.repositories.<Entity>MongoRepository` |
+| `driven-adapters/mongo` | Adapter | `adapters` | `com.<n>.mongo.adapters.<Entity>RepositoryAdapter` |
+| `driven-adapters/rabbit-producer` | Spring config | `config` | `com.<n>.rabbitproducer.config.RabbitMQConfig` |
+| `driven-adapters/rabbit-producer` | Publisher adapter | `adapters` | `com.<n>.rabbitproducer.adapters.RabbitMQMessagePublisher` |
+| `entry-points/rabbit-consumer` | Spring config | `config` | `com.<n>.rabbitconsumer.config.RabbitMQConfig` |
+| `entry-points/rest-api` | Controller | _(root)_ | `com.<n>.restapi.<Entity>Controller` |
+| `entry-points/rest-api` | Request/Response DTO | `dto` | `com.<n>.restapi.dto.<Entity>Request` |
+| `entry-points/app` | Spring config | `config` | `com.<n>.app.config.BeanConfig` |
+
+**Rules:**
+- Domain classes **never** go in the root `com.<n>.model` package — always in a sub-package
+- Domain entities → `entities/`; ports → `ports/`; enums → `enums/`; events → `events/`; exceptions → `exceptions/`; value objects → `valueobjects/`
+- Interface + implementation → implementation always in `impl/`
+- `@Configuration` classes → always in `config/`
+- `@Table` / `@Document` classes (infra) → `entities/` in their adapter module
+- Spring Data repository interfaces → always in `repositories/`
+- Classes that `implements` a domain port → always in `adapters/`
+- Request/Response/DTO classes → always in `dto/`
+- Non-trivial entity↔domain mappers → `mappers/`
+- Only create sub-packages that are actually needed

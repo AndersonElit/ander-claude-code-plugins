@@ -108,15 +108,96 @@ Si solicitas una tecnologia no soportada (MySQL, Kafka, Redis, SQS, etc.), el sk
 ```
 {service-name}/
 ├── pom.xml                              # Parent POM (Spring Boot 3.4.1, Java 21)
-├── domain/model/                        # Modelo de dominio puro
-├── application/use-cases/               # Logica de negocio
+├── .env                                 # Variables de entorno (NO se commitea)
+├── .env.example                         # Plantilla sin secretos (se commitea)
+├── domain/model/
+│   └── com.{n}.model/
+│       ├── entities/
+│       │   └── {Entity}.java            # Entidad de dominio pura (sin framework)
+│       ├── ports/
+│       │   ├── {Entity}Repository.java  # Puerto de salida (persistencia)
+│       │   └── {Entity}EventPublisher.java # Puerto de salida (mensajeria)
+│       ├── enums/
+│       │   └── {Entity}Status.java      # Enumeraciones de dominio
+│       ├── events/
+│       │   └── {Entity}CreatedEvent.java # Eventos de dominio (inmutables)
+│       ├── exceptions/
+│       │   └── {Entity}NotFoundException.java
+│       └── valueobjects/
+│           └── Email.java               # Value objects (opcional)
+├── application/use-cases/
+│   └── com.{n}.usecases/
+│       ├── {Entity}UseCase.java         # Puerto de entrada (interfaz)
+│       └── impl/
+│           └── {Entity}UseCaseImpl.java # Implementacion del caso de uso
 ├── infrastructure/
-│   ├── driven-adapters/                 # Adaptadores de salida (DB, mensajeria)
+│   ├── driven-adapters/
+│   │   ├── postgres/                    # Adaptador R2DBC PostgreSQL
+│   │   │   └── com.{n}.postgres/
+│   │   │       ├── entities/
+│   │   │       │   └── {Entity}Data.java
+│   │   │       ├── repositories/
+│   │   │       │   └── {Entity}R2dbcRepository.java
+│   │   │       └── adapters/
+│   │   │           └── {Entity}RepositoryAdapter.java
+│   │   ├── mongo/                       # Adaptador MongoDB
+│   │   │   └── com.{n}.mongo/
+│   │   │       ├── entities/
+│   │   │       │   └── {Entity}Document.java
+│   │   │       ├── repositories/
+│   │   │       │   └── {Entity}MongoRepository.java
+│   │   │       └── adapters/
+│   │   │           └── {Entity}RepositoryAdapter.java
+│   │   └── rabbit-producer/             # Productor RabbitMQ
+│   │       └── com.{n}.rabbitproducer/
+│   │           ├── config/
+│   │           │   └── RabbitMQConfig.java
+│   │           └── adapters/
+│   │               └── RabbitMQMessagePublisher.java
 │   └── entry-points/
-│       ├── rest-api/                    # Controladores REST (WebFlux)
-│       ├── app/                         # MainApplication + config
+│       ├── rest-api/
+│       │   └── com.{n}.restapi/
+│       │       ├── {Entity}Controller.java
+│       │       └── dto/
+│       │           ├── {Entity}Request.java
+│       │           └── {Entity}Response.java
+│       ├── app/                         # MainApplication + config Spring
+│       │   └── com.{n}.app/
+│       │       └── config/
+│       │           └── BeanConfig.java
 │       └── rabbit-consumer/             # (si se selecciona)
+│           └── com.{n}.rabbitconsumer/
+│               ├── config/
+│               │   └── RabbitMQConfig.java
+│               └── MessageListener.java
 ```
+
+## Convenciones de empaquetado
+
+Cada modulo Maven organiza sus clases en sub-paquetes por responsabilidad:
+
+**Capa de dominio (`domain/model`) — nunca en el paquete raiz:**
+
+| Tipo de clase | Sub-paquete | Descripcion |
+|--------------|-------------|-------------|
+| Entidades de dominio (puras, sin framework) | `entities/` | `@Data @Builder`, sin `@Table` ni `@Document` |
+| Interfaces de puertos de salida | `ports/` | Repositorios, publishers que la infra debe implementar |
+| Enumeraciones de negocio | `enums/` | Estados, tipos, categorias del dominio |
+| Eventos de dominio | `events/` | Inmutables: `@Value @Builder` |
+| Excepciones de dominio | `exceptions/` | Extienden `RuntimeException` |
+| Objetos de valor | `valueobjects/` | Inmutables, auto-validados, tipados |
+
+**Capas de infraestructura y aplicacion:**
+
+| Tipo de clase | Sub-paquete | Regla |
+|--------------|-------------|-------|
+| Implementacion de interfaz | `impl/` | Siempre que existe la interfaz en el mismo modulo |
+| Clases `@Configuration` | `config/` | Toda clase de configuracion Spring |
+| Entidades de persistencia (`@Table`, `@Document`) | `entities/` | En driven-adapters, nunca en el paquete raiz |
+| Interfaces Spring Data | `repositories/` | `ReactiveCrudRepository`, `ReactiveMongoRepository`, etc. |
+| Implementaciones de puertos de dominio | `adapters/` | Clases que `implements` un puerto del dominio |
+| Objetos de transferencia REST | `dto/` | Clases `Request`, `Response`, `Dto` |
+| Mappers de entidad↔dominio | `mappers/` | Cuando el mapeo tiene mas de 3 campos o logica compleja |
 
 ## Licencia
 

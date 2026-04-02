@@ -149,12 +149,35 @@ The scaffold uses these naming patterns (important to follow them when adding co
 - **Module packages**: `com.<safename>.<modulename>` (e.g., `com.msusers.model`, `com.msusers.usecases`)
 - **MainApplication**: lives in `com.<safename>` package (one level above module packages) for component scanning
 
+### Domain Layer — Package Structure
+
+The `domain/model` module is organized into sub-packages by type. Never place all domain classes in the root package.
+
+```
+domain/model/src/main/java/com/<safename>/model/
+├── entities/
+│   └── <Entity>.java                  # Domain entities — pure Java, no framework
+├── ports/
+│   ├── <Entity>Repository.java        # Output port (persistence)
+│   └── <Entity>EventPublisher.java    # Output port (messaging/events)
+├── enums/
+│   └── <Entity>Status.java            # Domain enumerations
+├── events/
+│   └── <Entity>CreatedEvent.java      # Domain events
+├── exceptions/
+│   └── <Entity>NotFoundException.java # Domain-specific exceptions
+└── valueobjects/
+    └── Email.java                     # Value objects (immutable, self-validating)
+```
+
+Use only the sub-packages your domain actually needs — don't create empty `events/` or `valueobjects/` directories upfront.
+
 ### Adding a Domain Entity
 
-Create in `domain/model/src/main/java/com/<safename>/model/`:
+Create in `domain/model/src/main/java/com/<safename>/model/entities/`:
 
 ```java
-package com.<safename>.model;
+package com.<safename>.model.entities;
 
 import lombok.Builder;
 import lombok.Data;
@@ -163,22 +186,92 @@ import lombok.Data;
 @Builder
 public class <Entity> {
     private String id;
-    // domain fields — no framework annotations here
+    // domain fields — no Spring, no persistence annotations here
 }
 ```
 
-The domain model must remain pure: no Spring annotations, no persistence annotations, no framework dependencies. It defines the business truth.
+The domain entity must remain pure: no Spring annotations, no `@Table`, no `@Document`. It defines the business truth.
+
+### Adding a Domain Enum
+
+Create in `domain/model/src/main/java/com/<safename>/model/enums/`:
+
+```java
+package com.<safename>.model.enums;
+
+public enum <Entity>Status {
+    ACTIVE, INACTIVE, PENDING
+}
+```
+
+### Adding a Domain Event
+
+Create in `domain/model/src/main/java/com/<safename>/model/events/`:
+
+```java
+package com.<safename>.model.events;
+
+import lombok.Builder;
+import lombok.Value;
+import java.time.Instant;
+
+@Value
+@Builder
+public class <Entity>CreatedEvent {
+    String entityId;
+    Instant occurredAt;
+    // relevant fields — immutable snapshot of what happened
+}
+```
+
+### Adding a Domain Exception
+
+Create in `domain/model/src/main/java/com/<safename>/model/exceptions/`:
+
+```java
+package com.<safename>.model.exceptions;
+
+public class <Entity>NotFoundException extends RuntimeException {
+    public <Entity>NotFoundException(String id) {
+        super("<Entity> not found with id: " + id);
+    }
+}
+```
+
+### Adding a Value Object
+
+Create in `domain/model/src/main/java/com/<safename>/model/valueobjects/`:
+
+```java
+package com.<safename>.model.valueobjects;
+
+import lombok.Value;
+
+@Value  // immutable by design
+public class Email {
+    String value;
+
+    public Email(String value) {
+        if (value == null || !value.contains("@"))
+            throw new IllegalArgumentException("Invalid email: " + value);
+        this.value = value.toLowerCase();
+    }
+}
+```
+
+Use value objects when a primitive carries business rules (validation, formatting, equality by value).
 
 ### Adding a Port (Interface)
 
-Ports are interfaces that define how the domain communicates with the outside world. They live in the **domain** or **application** layer.
+Ports are interfaces that define how the domain communicates with the outside world.
 
-**Output port** (domain defines what it needs from infrastructure):
-Create in `domain/model/src/main/java/com/<safename>/model/`:
+**Output port** (domain declares what it needs from infrastructure):
+Create in `domain/model/src/main/java/com/<safename>/model/ports/`:
 
 ```java
-package com.<safename>.model;
+package com.<safename>.model.ports;
 
+import com.<safename>.model.entities.<Entity>;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -190,12 +283,24 @@ public interface <Entity>Repository {
 }
 ```
 
+```java
+package com.<safename>.model.ports;
+
+import com.<safename>.model.events.<Entity>CreatedEvent;
+import reactor.core.publisher.Mono;
+
+public interface <Entity>EventPublisher {
+    Mono<Void> publish(<Entity>CreatedEvent event);
+}
+```
+
 **Input port** (what the application offers to entry points):
 Create in `application/use-cases/src/main/java/com/<safename>/usecases/`:
 
 ```java
 package com.<safename>.usecases;
 
+import com.<safename>.model.entities.<Entity>;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -209,13 +314,16 @@ public interface <Entity>UseCase {
 
 ### Adding a Use Case (Implementation)
 
-Create in `application/use-cases/src/main/java/com/<safename>/usecases/`:
+Implementations of use case interfaces go in an `impl` sub-package.
+
+Create in `application/use-cases/src/main/java/com/<safename>/usecases/impl/`:
 
 ```java
-package com.<safename>.usecases;
+package com.<safename>.usecases.impl;
 
-import com.<safename>.model.<Entity>;
-import com.<safename>.model.<Entity>Repository;
+import com.<safename>.model.entities.<Entity>;
+import com.<safename>.model.ports.<Entity>Repository;
+import com.<safename>.usecases.<Entity>UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -262,11 +370,31 @@ The use case depends on the **port interface** (`<Entity>Repository`), not on an
 
 ### Adding a Driven Adapter (Repository Implementation)
 
+Each driven adapter module is organized into sub-packages by concern. This keeps entities, Spring Data repositories, and adapter implementations clearly separated.
+
 **For PostgreSQL (R2DBC):**
-Create in `infrastructure/driven-adapters/postgres/src/main/java/com/<safename>/postgres/`:
+
+```
+infrastructure/driven-adapters/postgres/src/main/java/com/<safename>/postgres/
+├── entities/
+│   └── <Entity>Data.java           # R2DBC entity (infrastructure concern)
+├── repositories/
+│   └── <Entity>R2dbcRepository.java # Spring Data R2DBC interface
+├── adapters/
+│   └── <Entity>RepositoryAdapter.java # Implements domain port
+└── mappers/
+    └── <Entity>Mapper.java         # Domain ↔ Data mapping (if non-trivial)
+```
 
 ```java
-// 1. R2DBC Entity (infrastructure concern — separate from domain entity)
+// entities/<Entity>Data.java
+package com.<safename>.postgres.entities;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+import lombok.Data;
+
+@Data
 @Table("<table_name>")
 public class <Entity>Data {
     @Id
@@ -274,20 +402,51 @@ public class <Entity>Data {
     // mapped fields
 }
 
-// 2. Spring Data R2DBC Repository
+// repositories/<Entity>R2dbcRepository.java
+package com.<safename>.postgres.repositories;
+
+import com.<safename>.postgres.entities.<Entity>Data;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+
 public interface <Entity>R2dbcRepository extends ReactiveCrudRepository<<Entity>Data, String> {
 }
 
-// 3. Adapter that implements the domain port
+// adapters/<Entity>RepositoryAdapter.java
+package com.<safename>.postgres.adapters;
+
+import com.<safename>.model.entities.<Entity>;
+import com.<safename>.model.ports.<Entity>Repository;
+import com.<safename>.postgres.entities.<Entity>Data;
+import com.<safename>.postgres.repositories.<Entity>R2dbcRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 @Repository
 @RequiredArgsConstructor
 public class <Entity>RepositoryAdapter implements <Entity>Repository {
+
     private final <Entity>R2dbcRepository r2dbcRepository;
 
-    // Map between domain entity and R2DBC entity
     @Override
     public Mono<<Entity>> findById(String id) {
         return r2dbcRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public Flux<<Entity>> findAll() {
+        return r2dbcRepository.findAll().map(this::toDomain);
+    }
+
+    @Override
+    public Mono<<Entity>> save(<Entity> entity) {
+        return r2dbcRepository.save(toData(entity)).map(this::toDomain);
+    }
+
+    @Override
+    public Mono<Void> deleteById(String id) {
+        return r2dbcRepository.deleteById(id);
     }
 
     private <Entity> toDomain(<Entity>Data data) { /* mapping */ }
@@ -296,7 +455,19 @@ public class <Entity>RepositoryAdapter implements <Entity>Repository {
 ```
 
 **For MongoDB:**
-Same pattern but use `@Document` instead of `@Table`, and `ReactiveMongoRepository` instead of `ReactiveCrudRepository`.
+Same sub-package structure but use `@Document` instead of `@Table`, and `ReactiveMongoRepository` instead of `ReactiveCrudRepository`:
+
+```
+infrastructure/driven-adapters/mongo/src/main/java/com/<safename>/mongo/
+├── entities/
+│   └── <Entity>Document.java       # MongoDB document (use @Document)
+├── repositories/
+│   └── <Entity>MongoRepository.java # ReactiveMongoRepository interface
+├── adapters/
+│   └── <Entity>RepositoryAdapter.java
+└── mappers/
+    └── <Entity>Mapper.java         # (optional, if mapping is complex)
+```
 
 **Important:** Add the domain model dependency to the adapter module POM:
 ```xml
@@ -309,11 +480,49 @@ Same pattern but use `@Document` instead of `@Table`, and `ReactiveMongoReposito
 
 ### Adding a REST Controller (Entry Point)
 
-Create in `infrastructure/entry-points/rest-api/src/main/java/com/<safename>/restapi/`:
+The rest-api module is organized with DTOs in a `dto` sub-package, keeping the controller clean and the domain entity unexposed:
+
+```
+infrastructure/entry-points/rest-api/src/main/java/com/<safename>/restapi/
+├── <Entity>Controller.java         # @RestController
+└── dto/
+    ├── <Entity>Request.java        # Incoming payload (validated with Bean Validation)
+    └── <Entity>Response.java       # Outgoing payload (never expose domain entity directly)
+```
 
 ```java
+// dto/<Entity>Request.java
+package com.<safename>.restapi.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class <Entity>Request {
+    @NotBlank
+    private String name;
+    // request fields with validation annotations
+}
+
+// dto/<Entity>Response.java
+package com.<safename>.restapi.dto;
+
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+public class <Entity>Response {
+    private String id;
+    private String name;
+    // response fields — only what the client needs
+}
+
+// <Entity>Controller.java
 package com.<safename>.restapi;
 
+import com.<safename>.restapi.dto.<Entity>Request;
+import com.<safename>.restapi.dto.<Entity>Response;
 import com.<safename>.usecases.<Entity>UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -328,24 +537,27 @@ public class <Entity>Controller {
     private final <Entity>UseCase useCase;
 
     @GetMapping("/{id}")
-    public Mono<<Entity>> getById(@PathVariable String id) {
-        return useCase.getById(id);
+    public Mono<<Entity>Response> getById(@PathVariable String id) {
+        return useCase.getById(id).map(this::toResponse);
     }
 
     @GetMapping
-    public Flux<<Entity>> getAll() {
-        return useCase.getAll();
+    public Flux<<Entity>Response> getAll() {
+        return useCase.getAll().map(this::toResponse);
     }
 
     @PostMapping
-    public Mono<<Entity>> create(@RequestBody <Entity> entity) {
-        return useCase.create(entity);
+    public Mono<<Entity>Response> create(@RequestBody <Entity>Request request) {
+        return useCase.create(toDomain(request)).map(this::toResponse);
     }
 
     @DeleteMapping("/{id}")
     public Mono<Void> delete(@PathVariable String id) {
         return useCase.delete(id);
     }
+
+    private <Entity>Response toResponse(<Entity> entity) { /* mapping */ }
+    private <Entity> toDomain(<Entity>Request request) { /* mapping */ }
 }
 ```
 
@@ -369,10 +581,69 @@ public class <Entity>Controller {
 ### Adding RabbitMQ Integration
 
 **Producer** (driven-adapter — the application sends messages outward):
-The scaffold generates `RabbitMQConfig.java` and `MessagePublisher.java`. To add custom messages, create a port interface in the domain and implement it in the rabbit-producer adapter following the same pattern as repository adapters.
+The scaffold generates `RabbitMQConfig.java` and `MessagePublisher.java`. These are organized into sub-packages:
+
+```
+infrastructure/driven-adapters/rabbit-producer/src/main/java/com/<safename>/rabbitproducer/
+├── config/
+│   └── RabbitMQConfig.java         # @Configuration — declares exchanges, queues, bindings
+└── adapters/
+    └── RabbitMQMessagePublisher.java # Implements domain port (EventPublisher)
+```
+
+To add custom messages, create a port interface in the domain and implement it in the `adapters/` sub-package following the same pattern as repository adapters.
 
 **Consumer** (entry-point — messages arrive from outside into the application):
-The scaffold generates `RabbitMQConfig.java` and `MessageListener.java`. The listener should delegate to a use case, just like a REST controller would.
+
+```
+infrastructure/entry-points/rabbit-consumer/src/main/java/com/<safename>/rabbitconsumer/
+├── config/
+│   └── RabbitMQConfig.java         # @Configuration — listener container factory, bindings
+└── MessageListener.java            # @RabbitListener — delegates to a use case
+```
+
+The listener should delegate to a use case, just like a REST controller would.
+
+### Package Conventions (Always Apply)
+
+Every module follows a consistent sub-package structure. Never dump all classes in the root package of a module.
+
+| Module | Class type | Sub-package | Example |
+|--------|-----------|-------------|---------|
+| `domain/model` | Domain entity | `entities` | `com.<n>.model.entities.<Entity>` |
+| `domain/model` | Output port interface | `ports` | `com.<n>.model.ports.<Entity>Repository` |
+| `domain/model` | Enumeration | `enums` | `com.<n>.model.enums.<Entity>Status` |
+| `domain/model` | Domain event | `events` | `com.<n>.model.events.<Entity>CreatedEvent` |
+| `domain/model` | Domain exception | `exceptions` | `com.<n>.model.exceptions.<Entity>NotFoundException` |
+| `domain/model` | Value object | `valueobjects` | `com.<n>.model.valueobjects.Email` |
+| `application/use-cases` | Input port (interface) | _(root)_ | `com.<n>.usecases.<Entity>UseCase` |
+| `application/use-cases` | Use case implementation | `impl` | `com.<n>.usecases.impl.<Entity>UseCaseImpl` |
+| `driven-adapters/postgres` | R2DBC entity | `entities` | `com.<n>.postgres.entities.<Entity>Data` |
+| `driven-adapters/postgres` | Spring Data repo | `repositories` | `com.<n>.postgres.repositories.<Entity>R2dbcRepository` |
+| `driven-adapters/postgres` | Adapter (port impl) | `adapters` | `com.<n>.postgres.adapters.<Entity>RepositoryAdapter` |
+| `driven-adapters/postgres` | Entity↔domain mapper | `mappers` | `com.<n>.postgres.mappers.<Entity>Mapper` |
+| `driven-adapters/mongo` | Document entity | `entities` | `com.<n>.mongo.entities.<Entity>Document` |
+| `driven-adapters/mongo` | Reactive repo | `repositories` | `com.<n>.mongo.repositories.<Entity>MongoRepository` |
+| `driven-adapters/mongo` | Adapter | `adapters` | `com.<n>.mongo.adapters.<Entity>RepositoryAdapter` |
+| `driven-adapters/rabbit-producer` | Spring config | `config` | `com.<n>.rabbitproducer.config.RabbitMQConfig` |
+| `driven-adapters/rabbit-producer` | Publisher adapter | `adapters` | `com.<n>.rabbitproducer.adapters.RabbitMQMessagePublisher` |
+| `entry-points/rabbit-consumer` | Spring config | `config` | `com.<n>.rabbitconsumer.config.RabbitMQConfig` |
+| `entry-points/rest-api` | Controller | _(root)_ | `com.<n>.restapi.<Entity>Controller` |
+| `entry-points/rest-api` | Request/Response DTO | `dto` | `com.<n>.restapi.dto.<Entity>Request` |
+| `entry-points/app` | Spring config | `config` | `com.<n>.app.config.BeanConfig` |
+
+**Rules of thumb:**
+- Domain classes **always** go in a sub-package — never in the root `com.<n>.model` package
+- Output port interfaces (repository, publisher) → `ports/`
+- Domain entities → `entities/`; enumerations → `enums/`; events → `events/`; exceptions → `exceptions/`; value objects → `valueobjects/`
+- If you create an interface + implementation in the same module, the implementation goes in `impl/`
+- `@Configuration` classes → always in `config/`
+- `@Table` / `@Document` infrastructure entities → `entities/` in their adapter module
+- Spring Data repository interfaces → `repositories/`
+- Classes that `implements` a domain port → `adapters/`
+- Request/Response/DTO classes → `dto/`
+- Non-trivial entity↔domain mappers (> 3 fields or computed logic) → `mappers/`
+- Only create sub-packages you actually need — don't pre-create empty `events/` or `valueobjects/`
 
 ### Dependency Rules (Never Violate These)
 
@@ -447,11 +718,17 @@ The app starts on port 8080 by default. The starter `/hello` endpoint verifies e
 User: "Create a users microservice with PostgreSQL"
 → Run scaffold: --service-name=ms-users --database=postgres
 → Offer to add User entity
-→ Create User.java in domain/model
-→ Create UserRepository port in domain/model
-→ Create UserUseCase interface + impl in application/use-cases
-→ Create UserRepositoryAdapter in driven-adapters/postgres
-→ Create UserController in entry-points/app
+→ Create User.java               in domain/model        → com.msusers.model.entities
+→ Create UserRepository.java     in domain/model        → com.msusers.model.ports (output port)
+→ Create UserStatus.java         in domain/model        → com.msusers.model.enums (if needed)
+→ Create UserNotFoundException   in domain/model        → com.msusers.model.exceptions (if needed)
+→ Create UserUseCase.java        in application/use-cases → com.msusers.usecases (input port)
+→ Create UserUseCaseImpl.java    in application/use-cases → com.msusers.usecases.impl
+→ Create UserData.java           in driven-adapters/postgres → com.msusers.postgres.entities
+→ Create UserR2dbcRepository.java                       → com.msusers.postgres.repositories
+→ Create UserRepositoryAdapter.java                     → com.msusers.postgres.adapters
+→ Create UserRequest.java / UserResponse.java           → com.msusers.restapi.dto
+→ Create UserController.java     in entry-points/rest-api → com.msusers.restapi
 → Update POMs with inter-module dependencies
 → Build and verify
 ```
