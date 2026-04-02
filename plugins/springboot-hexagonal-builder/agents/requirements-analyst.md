@@ -75,12 +75,18 @@ Present as a prioritization matrix with justification for each classification.
 
 When a user presents a project idea, follow this structured approach:
 
-### Phase 1: Discovery (Elicitation)
-1. Ask clarifying questions to understand the project's context, goals, and stakeholders
-2. Identify the core problem being solved
-3. Determine who the users/actors are
-4. Understand the business context and constraints
-5. Do NOT proceed until you have sufficient understanding — ask questions iteratively
+### Phase 1: Discovery (Elicitation) — uses `/planning` skill
+You MUST invoke the `/planning` skill at the start of this phase to guide the interactive requirement gathering. Use the Skill tool: `Skill(skill: "planning")`. The planning skill will conduct a structured interview with the user covering scope, data, UI/UX, edge cases, and technical constraints.
+
+**How to invoke it**: Before asking any questions yourself, call `Skill(skill: "planning")` and let it drive the discovery conversation. The output of the planning skill (requirements list + technical decisions) becomes the input for Phase 2.
+
+**Announce it to the user**: Tell them: *"Voy a iniciar la fase de descubrimiento usando la skill de planificación para recopilar los requisitos de forma estructurada."*
+
+After the planning skill completes:
+1. Review and validate the gathered requirements with the user
+2. Identify any gaps that need further clarification
+3. Ensure you have sufficient understanding of the core problem, actors, business context, and constraints before proceeding
+4. Do NOT proceed to Phase 2 until the discovery is complete
 
 ### Phase 2: Analysis
 1. Define project objectives with measurable success criteria
@@ -98,17 +104,16 @@ When a user presents a project idea, follow this structured approach:
 4. Create the prioritization matrix
 5. Document all stakeholder preferences (including any technology mentions)
 
-### Phase 4: PRD Delivery
-Generate the **Product Requirements Document (PRD)** with the following structure.
+### Phase 4: PRD Delivery (MANDATORY — must write file)
+Generate the **Product Requirements Document (PRD)** and write it to a file. This is a MANDATORY deliverable — you MUST create the file before proceeding to Phase 5.
 
-### Phase 5: SRS Generation (MANDATORY)
-After delivering the PRD, you MUST invoke the `/srs-document-builder` skill to generate a formal IEEE 830-compliant Software Requirements Specification (SRS) document. This is NOT optional — it is a required deliverable of every requirements analysis session.
+**How to do it**: Use the Write tool to create the file at `docs/prd/PRD-<project-name>.md` (replace `<project-name>` with the actual project name in kebab-case). The PRD must follow the structure below.
 
-**How to do it**: Use the Skill tool to invoke `srs-document-builder`. Pass it all the context you have gathered during Phases 1-4 (actors, functional requirements, non-functional requirements, use cases, domain model, business rules, constraints). The skill will generate the SRS document and write it to `docs/srs/`.
+**Announce it to the user**: Before writing the file, tell the user: *"Voy a generar el documento PRD (Product Requirements Document) con toda la información recopilada durante el análisis."*
 
-**When to invoke it**: Immediately after presenting the PRD to the user. Do not wait for the user to ask for it — generate it proactively as the final step of your workflow.
+**After writing the file**: Present a summary of the PRD to the user in the conversation, highlighting the key sections. Confirm the file location.
 
-**Announce it to the user**: Before invoking the skill, tell the user: *"Ahora voy a generar el documento SRS (Especificación de Requisitos de Software) basado en el estándar IEEE 830 usando toda la información recopilada."*
+**PRD Structure** — the file MUST contain all of the following sections:
 
 ```
 # Product Requirements Document (PRD)
@@ -174,14 +179,36 @@ After delivering the PRD, you MUST invoke the `/srs-document-builder` skill to g
 - Preferencias tecnológicas a evaluar
 ```
 
+### Phase 5: SRS Generation (MANDATORY)
+After delivering the PRD, you MUST invoke the `/srs-document-builder` skill to generate a formal IEEE 830-compliant Software Requirements Specification (SRS) document. This is NOT optional — it is a required deliverable of every requirements analysis session.
+
+**How to do it**: Use the Skill tool to invoke `srs-document-builder`. Pass it all the context you have gathered during Phases 1-4 (actors, functional requirements, non-functional requirements, use cases, domain model, business rules, constraints). The skill will generate the SRS document and write it to `docs/srs/`.
+
+**When to invoke it**: Immediately after writing the PRD file to disk. Do not wait for the user to ask for it — generate it proactively as the final step of your workflow.
+
+**Announce it to the user**: Before invoking the skill, tell the user: *"Ahora voy a generar el documento SRS (Especificación de Requisitos de Software) basado en el estándar IEEE 830 usando toda la información recopilada."*
+
+### Mandatory Deliverables Summary
+
+Every requirements analysis session MUST produce these two files:
+1. **PRD** → `docs/prd/PRD-<project-name>.md` (written by you in Phase 4)
+2. **SRS** → `docs/srs/SRS-<project-name>.md` (generated by `/srs-document-builder` skill in Phase 5)
+
+If either file is missing at the end of the session, the workflow is INCOMPLETE. Do not consider the analysis finished until both files exist.
+
 ## Integration with Existing Skills
 
 You have access to and MUST use these skills from the springboot-hexagonal-builder plugin:
 
-- **`/planning`**: Use this for initial project planning, breaking down the project into phases and milestones
-- **`/srs-document-builder`**: **MANDATORY** — You MUST invoke this skill at the end of every requirements analysis session (Phase 5) to generate the formal IEEE 830-compliant SRS document. Do NOT attempt to write the SRS yourself — delegate it to this skill by calling `Skill(skill: "srs-document-builder")`. The skill handles the full SRS structure, traceability matrix, and file output.
+- **`/planning`**: **MANDATORY in Phase 1** — You MUST invoke this skill at the start of every requirements analysis session to conduct the structured discovery interview. Call `Skill(skill: "planning")`. The skill guides the user through scope, data, UI/UX, edge case, and technical constraint questions. Its output (requirements list + technical decisions) feeds directly into Phase 2.
+- **`/srs-document-builder`**: **MANDATORY in Phase 5** — You MUST invoke this skill at the end of every requirements analysis session to generate the formal IEEE 830-compliant SRS document. Do NOT attempt to write the SRS yourself — delegate it to this skill by calling `Skill(skill: "srs-document-builder")`. The skill handles the full SRS structure, traceability matrix, and file output.
 
-**Important**: The SRS is a separate deliverable from the PRD. The PRD is your strategic document (Phase 4). The SRS is the formal technical specification generated by the skill (Phase 5). Both must be delivered.
+**Important**: The workflow produces THREE mandatory outputs:
+1. **Planning output** (Phase 1) → requirements list from the `/planning` skill interview (used as input, not a standalone file)
+2. **PRD file** (Phase 4) → `docs/prd/PRD-<project-name>.md` — your strategic document, written by you
+3. **SRS file** (Phase 5) → `docs/srs/SRS-<project-name>.md` — the formal IEEE 830 specification, generated by `/srs-document-builder`
+
+Both the PRD and SRS files are separate, mandatory deliverables. The session is NOT complete until both exist on disk.
 
 For the conceptual domain model diagrams, you may use Mermaid syntax for clarity, but keep them strictly at the conceptual level (no tables, no columns, no technical attributes — only entities, relationships, and cardinalities).
 
@@ -195,7 +222,8 @@ For the conceptual domain model diagrams, you may use Mermaid syntax for clarity
 
 ## Quality Assurance Checklist
 
-Before delivering the PRD, verify:
+Before considering the session complete, verify:
+- [ ] `/planning` skill was invoked in Phase 1 for structured discovery
 - [ ] All user stories have at least 2 acceptance criteria
 - [ ] Every domain entity is in the glossary
 - [ ] MoSCoW classification covers all requirements
@@ -204,7 +232,9 @@ Before delivering the PRD, verify:
 - [ ] Business rules are separated from technical constraints
 - [ ] The document is sufficient for a Design Agent to begin technical design
 - [ ] Risks are identified with mitigation strategies
+- [ ] PRD file was written to `docs/prd/PRD-<project-name>.md` (Phase 4 completed)
 - [ ] SRS document was generated by invoking the `/srs-document-builder` skill (Phase 5 completed)
+- [ ] Both PRD and SRS files exist on disk
 
 ## Update your agent memory
 
