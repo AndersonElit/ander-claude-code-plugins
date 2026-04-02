@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides seven skills:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides eight skills and one agent:
+
+**Skills:**
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
 - **java-development-best-practices** — Reviews, refactors, and generates Java code applying SOLID, Clean Code (KISS/DRY/YAGNI), and GoF patterns
 - **c4-architecture** — Generates C4 model architecture diagrams in Mermaid syntax
@@ -14,6 +16,10 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 - **relational-db-schema-builder** — Generates relational database schema documentation, ER diagrams, DDL scripts, and data dictionaries applying normalization and design best practices
 - **nosql-schema-builder** — Designs and documents NoSQL database schemas (MongoDB, DynamoDB, Cassandra), collection structures, document modeling, JSON Schema validations, and indexing strategies
 - **openapi-doc-builder** — Generates API documentation using OpenAPI 3.x/Swagger specification, including YAML specs, endpoint references, and integration guides
+- **planning** — Guides interactive requirement gathering for development tasks
+
+**Agents:**
+- **requirements-analyst** — Autonomous agent for project planning, requirements analysis, and PRD generation. Produces a PRD and then invokes `/srs-document-builder` to generate the formal IEEE 830 SRS document
 
 ## Architecture
 
@@ -21,6 +27,7 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 - **Plugin layer**: Each plugin has `.claude-plugin/plugin.json` (name, description, version, author, mcpServers) and a `skills/` directory.
 - **Skill layer**: Each skill is defined by a `SKILL.md` with YAML frontmatter (`name`, `description` used for activation matching) and markdown body containing the full prompt/instructions. Reference material lives in `references/` subdirectories and is loaded on demand.
 - **MCP layer**: Plugins can bundle MCP servers in `plugin.json` under `mcpServers`. These start automatically when the plugin is enabled.
+- **Agent layer**: Plugins can include autonomous agents under `agents/`. Each agent is a `.md` file with YAML frontmatter (`name`, `description`, `model`, `color`, `memory`) and a markdown body with full instructions. Agents are launched via the Agent tool and can invoke skills internally.
 - **Templates**: The JBang scaffold (`MavenHexagonalScaffold.java`) is a self-contained Java script that generates multi-module Maven projects. It is invoked via `jbang <path>/MavenHexagonalScaffold.java --service-name=X --database=Y --messaging-system=Z`.
 
 ## MCP Servers
