@@ -10,7 +10,7 @@ Coleccion de plugins para [Claude Code](https://docs.anthropic.com/en/docs/claud
 
 ### springboot-hexagonal-builder
 
-Plugin con nueve skills y tres agentes autonomos para el ciclo completo de desarrollo backend en Java: desde el analisis de requisitos hasta el diseño arquitectonico, generacion de codigo, modelado de datos y documentacion de APIs.
+Plugin con nueve skills y dos agentes autonomos para el ciclo completo de desarrollo backend en Java: desde el analisis de requisitos hasta el diseño arquitectonico, generacion de codigo, modelado de datos y documentacion de APIs.
 
 **Skills:**
 
@@ -28,27 +28,23 @@ Plugin con nueve skills y tres agentes autonomos para el ciclo completo de desar
 
 - **requirements-analyst** - Agente autonomo para planificacion de proyectos, analisis de requisitos y generacion de PRD. Produce un PRD y luego invoca `/srs-document-builder` para generar el documento formal SRS (IEEE 830).
 - **software-architect-lead** - Arquitecto de Software & Tech Lead para diseño arquitectonico, decisiones tecnicas, diseño de soluciones, revision de codigo, seleccion de stack y documentacion tecnica. Genera los entregables obligatorios de diseño para la fase de desarrollo.
-- **sdlc-workflow-supervisor** - Orquesta el pipeline completo del SDLC desde requisitos del cliente hasta diseño arquitectonico. Invoca al `requirements-analyst`, valida la calidad de los documentos PRD/SRS, y coordina la transicion al `software-architect-lead`.
 
-**Pipeline de orquestacion:**
+**Flujo de trabajo:**
 
 ```
 Requisitos del cliente
         |
         v
-  sdlc-workflow-supervisor  --> requirements-analyst (PRD + SRS)
-        |                         |
-        v                         v
-  Validacion (10/10)        docs/prd/ + docs/srs/
+  requirements-analyst  --> PRD (docs/prd/) + SRS (docs/srs/)
         |
         v
-  software-architect-lead   --> docs/design/
-        |                       ├── openapi/       (OpenAPI spec)
-        v                       ├── events/        (esquemas de eventos)
-  Auditoria de              ├── scaffold/      (blueprint de estructura)
-  trazabilidad              ├── database/      (ER + schema.sql)
-                                ├── testing/       (lineamientos de testing)
-                                └── c4/            (diagramas C4)
+  software-architect-lead  --> docs/design/
+                               ├── openapi/       (OpenAPI spec)
+                               ├── events/        (esquemas de eventos)
+                               ├── scaffold/      (blueprint de estructura)
+                               ├── database/      (ER + schema.sql)
+                               ├── testing/       (lineamientos de testing)
+                               └── c4/            (diagramas C4)
 ```
 
 ## Instalacion
@@ -80,8 +76,7 @@ ander-claude-code-plugins/
         │   └── plugin.json              # Metadata del plugin
         ├── agents/
         │   ├── requirements-analyst.md          # Agente de analisis de requisitos
-        │   ├── software-architect-lead.md       # Agente arquitecto de software
-        │   └── sdlc-workflow-supervisor.md       # Agente orquestador del SDLC
+        │   └── software-architect-lead.md       # Agente arquitecto de software
         ├── skills/
         │   ├── hexagonal-architecture-builder/
         │   │   └── SKILL.md             # Skill de scaffolding

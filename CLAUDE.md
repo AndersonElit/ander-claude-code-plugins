@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides nine skills and three agents:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides nine skills and two agents:
 
 **Skills:**
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
@@ -22,7 +22,6 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 **Agents:**
 - **requirements-analyst** — Autonomous agent for project planning, requirements analysis, and PRD generation. Produces a PRD and then invokes `/srs-document-builder` to generate the formal IEEE 830 SRS document
 - **software-architect-lead** — Elite Software Architect & Tech Lead agent for architectural design, technical decision-making, solution design, code review, RFC creation, stack selection, and technical documentation
-- **sdlc-workflow-supervisor** — Orchestrates the full SDLC pipeline from raw client requirements to architecture design. Receives client requirements as input, invokes `requirements-analyst` to generate PRD/SRS documents, validates document quality, and ensures traceability between requirements and architecture deliverables
 
 ## Architecture
 
@@ -83,19 +82,13 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 3. The `description` field must include example user prompts and assistant responses showing when to invoke the agent
 4. Agents can invoke skills internally via `Skill(skill: "<skill-name>")` and other agents via the Agent tool
 
-## Agent Orchestration Pipeline
+## Agent Workflow
 
-The three agents form a pipeline for the full SDLC workflow:
+The two agents work sequentially for the full SDLC workflow:
 
 ```
 Client Requirements
         ↓
-┌─────────────────────────────┐
-│  sdlc-workflow-supervisor   │  ← Entry point: receives raw requirements OR existing PRD/SRS
-│  (orchestrator / QA gate)   │
-└─────────┬───────────────────┘
-          │ invokes (if no PRD/SRS exist)
-          ↓
 ┌─────────────────────────────┐
 │   requirements-analyst      │  ← Runs /planning → Analysis → PRD → /srs-document-builder
 │   (Phase 1: Planning)       │
@@ -104,22 +97,13 @@ Client Requirements
           │ returns PRD + SRS
           ↓
 ┌─────────────────────────────┐
-│  sdlc-workflow-supervisor   │  ← Validates (10/10 required), builds Design Roadmap
-│  (validation & hand-off)    │
-└─────────┬───────────────────┘
-          │ hands off to
-          ↓
-┌─────────────────────────────┐
 │  software-architect-lead    │  ← Runs /c4-architecture, /relational-db-schema-builder,
-│  (Phase 3: Design)          │     /nosql-schema-builder, /openapi-doc-builder,
+│  (Phase 2: Design)          │     /nosql-schema-builder, /openapi-doc-builder,
 │                              │     /java-testing-architect
 └─────────┬───────────────────┘
-          │ returns design artifacts
+          │ returns design artifacts in docs/design/
           ↓
-┌─────────────────────────────┐
-│  sdlc-workflow-supervisor   │  ← Traceability audit (requirements ↔ architecture)
-│  (post-design verification) │
-└─────────────────────────────┘
+         done
 ```
 
 **Document output locations:**
@@ -176,3 +160,13 @@ All generated code follows a consistent sub-package structure inside each Maven 
 - Request/Response/DTO classes → always in `dto/`
 - Non-trivial entity↔domain mappers → `mappers/`
 - Only create sub-packages that are actually needed
+
+## Approach
+- Think before acting. Read existing files before writing code.
+- Be concise in output but thorough in reasoning.
+- Prefer editing over rewriting whole files.
+- Do not re-read files you have already read unless the file may have changed.
+- Test your code before declaring done.
+- No sycophantic openers or closing fluff.
+- Keep solutions simple and direct.
+- User instructions always override this file.

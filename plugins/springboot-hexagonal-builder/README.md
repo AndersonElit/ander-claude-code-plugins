@@ -22,18 +22,13 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 |--------|-------------|
 | `requirements-analyst` | Planificacion de proyectos, analisis de requisitos y generacion de PRD + SRS (IEEE 830) |
 | `software-architect-lead` | Diseño arquitectonico, decisiones tecnicas, generacion de entregables obligatorios de diseño |
-| `sdlc-workflow-supervisor` | Orquesta el pipeline SDLC completo: requisitos → validacion → diseño → auditoria de trazabilidad |
 
-### Pipeline del SDLC
+### Flujo de trabajo
 
-Los tres agentes forman un pipeline orquestado:
+Los dos agentes se usan de forma secuencial:
 
-1. **`sdlc-workflow-supervisor`** recibe requisitos del cliente
-2. Invoca a **`requirements-analyst`** → genera PRD (`docs/prd/`) y SRS (`docs/srs/`)
-3. Valida documentos (requiere puntaje 10/10 para avanzar)
-4. Traspasa al **`software-architect-lead`** con la Hoja de Ruta de Diseño
-5. El arquitecto genera los entregables obligatorios en `docs/design/`
-6. El supervisor audita la trazabilidad requisitos ↔ arquitectura
+1. **`requirements-analyst`** recibe los requisitos del cliente → genera PRD (`docs/prd/`) y SRS (`docs/srs/`)
+2. **`software-architect-lead`** recibe el PRD/SRS → genera los entregables obligatorios en `docs/design/`
 
 ### Entregables obligatorios de diseño
 
