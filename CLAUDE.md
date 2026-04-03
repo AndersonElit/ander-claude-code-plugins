@@ -124,6 +124,7 @@ Client Requirements
 **Document output locations:**
 - PRD → `docs/prd/PRD-<project-name>.md`
 - SRS → `docs/srs/SRS-<project-name>.md`
+- Design deliverables → `docs/design/` (openapi/, events/, scaffold/, database/, c4/)
 
 ## Key Conventions
 

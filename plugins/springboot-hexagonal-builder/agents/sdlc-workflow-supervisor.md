@@ -140,12 +140,13 @@ Once documents score 10/10, prepare the **Design Roadmap (Hoja de Ruta de Diseñ
 ### Entidades de Dominio Identificadas
 [Lista de entidades principales con sus relaciones clave]
 
-### Directiva de Diseño
-Arquitecto, basándote en los documentos adjuntos y esta hoja de ruta, genera la documentación correspondiente a:
-1. **Modelo C4** (Context, Container, Component, Code) — usando el skill `/c4-architecture`
-2. **Modelo de Base de Datos** — usando `/relational-db-schema-builder` y/o `/nosql-schema-builder` según corresponda
-3. **Especificación OpenAPI/Swagger** — usando `/openapi-doc-builder`
-4. **Otros documentos de diseño** que consideres necesarios según los requisitos
+### Directiva de Diseño — Entregables Obligatorios
+Arquitecto, basándote en los documentos adjuntos y esta hoja de ruta, genera **todos** los entregables obligatorios en `docs/design/`:
+1. **Especificación OpenAPI/Swagger** (`docs/design/openapi/openapi-spec.yaml`) — usando `/openapi-doc-builder`. Debe incluir todos los endpoints, modelos request/response, y códigos HTTP.
+2. **Esquemas de Eventos** (`docs/design/events/event-schemas.md`) — Si el sistema usa mensajería (RabbitMQ/Kafka), define los esquemas JSON Schema de cada mensaje, exchanges/topics, y flujos productor→consumidor.
+3. **Blueprint de Estructura del Proyecto** (`docs/design/scaffold/project-structure.md`) — Documenta la estructura de encarpetado hexagonal completa (NO generar código). Lista todas las clases, paquetes y responsabilidades.
+4. **Modelo Entidad-Relación** (`docs/design/database/er-model.md` + `docs/design/database/schema.sql`) — usando `/relational-db-schema-builder` y/o `/nosql-schema-builder`. El `.sql` debe ser ejecutable directamente.
+5. **Diagramas C4** (`docs/design/c4/c4-diagrams.md`) — usando `/c4-architecture`. Obligatorio: Contexto, Contenedores y Componentes (uno por microservicio).
 
 ### Matriz de Trazabilidad Requerida
 Cada decisión arquitectónica debe referenciar el requisito (RF-XXX / RNF-XXX) que la justifica.
@@ -157,6 +158,18 @@ Cada decisión arquitectónica debe referenciar el requisito (RF-XXX / RNF-XXX) 
 ### 4. Consistency Verification (Verificación de Consistencia Post-Diseño)
 
 After the architect delivers design artifacts, perform a **traceability audit**:
+
+**Step 0 — Verify all mandatory deliverables exist:**
+- [ ] `docs/design/openapi/openapi-spec.yaml` — OpenAPI specification
+- [ ] `docs/design/c4/c4-diagrams.md` — C4 diagrams (Context + Container + Component)
+- [ ] `docs/design/database/er-model.md` — ER model + data dictionary
+- [ ] `docs/design/database/schema.sql` — Executable DDL script
+- [ ] `docs/design/scaffold/project-structure.md` — Hexagonal structure blueprint
+- [ ] `docs/design/events/event-schemas.md` — Event schemas (only if messaging is in scope)
+
+If any mandatory deliverable is missing, **reject immediately** and direct the architect to generate it before proceeding.
+
+**Step 1-5 — Traceability audit:**
 
 1. **Extract** all functional requirements (RF-XXX) from the SRS
 2. **Map** each requirement to its corresponding architecture component(s)
