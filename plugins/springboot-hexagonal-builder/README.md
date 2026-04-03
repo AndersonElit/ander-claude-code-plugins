@@ -8,11 +8,45 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 |-------|-------------|
 | `hexagonal-architecture-builder` | Genera y extiende microservicios reactivos con Arquitectura Hexagonal usando JBang |
 | `java-development-best-practices` | Revisa, refactoriza y genera codigo Java aplicando SOLID, KISS/DRY/YAGNI, patrones GoF |
+| `java-testing-architect` | Genera, revisa y refactoriza tests para microservicios Java. Define lineamientos de tests unitarios e integracion por capa hexagonal |
 | `c4-architecture` | Genera diagramas de arquitectura C4 (Context, Container, Component, Deployment) en Mermaid |
 | `srs-document-builder` | Genera documentos de Especificacion de Requisitos (ERS/SRS) basados en IEEE 830 |
 | `relational-db-schema-builder` | Diseña esquemas de BD relacional: diagramas ER, DDL, diccionarios de datos |
 | `nosql-schema-builder` | Diseña esquemas NoSQL (MongoDB, DynamoDB, Cassandra): modelado de documentos, validaciones JSON Schema, indices, sharding |
 | `openapi-doc-builder` | Genera documentacion de APIs con OpenAPI 3.x/Swagger |
+| `planning` | Guia la recopilacion interactiva de requisitos para tareas de desarrollo |
+
+## Agentes autonomos
+
+| Agente | Descripcion |
+|--------|-------------|
+| `requirements-analyst` | Planificacion de proyectos, analisis de requisitos y generacion de PRD + SRS (IEEE 830) |
+| `software-architect-lead` | Diseño arquitectonico, decisiones tecnicas, generacion de entregables obligatorios de diseño |
+| `sdlc-workflow-supervisor` | Orquesta el pipeline SDLC completo: requisitos → validacion → diseño → auditoria de trazabilidad |
+
+### Pipeline del SDLC
+
+Los tres agentes forman un pipeline orquestado:
+
+1. **`sdlc-workflow-supervisor`** recibe requisitos del cliente
+2. Invoca a **`requirements-analyst`** → genera PRD (`docs/prd/`) y SRS (`docs/srs/`)
+3. Valida documentos (requiere puntaje 10/10 para avanzar)
+4. Traspasa al **`software-architect-lead`** con la Hoja de Ruta de Diseño
+5. El arquitecto genera los entregables obligatorios en `docs/design/`
+6. El supervisor audita la trazabilidad requisitos ↔ arquitectura
+
+### Entregables obligatorios de diseño
+
+El agente `software-architect-lead` genera estos entregables en `docs/design/`:
+
+| Entregable | Archivo | Skill utilizado |
+|------------|---------|-----------------|
+| Especificacion OpenAPI/Swagger | `openapi/openapi-spec.yaml` | `/openapi-doc-builder` |
+| Esquemas de eventos (si aplica) | `events/event-schemas.md` | — |
+| Blueprint de estructura hexagonal | `scaffold/project-structure.md` | — (solo documentacion) |
+| Modelo ER + script DDL | `database/er-model.md` + `database/schema.sql` | `/relational-db-schema-builder` o `/nosql-schema-builder` |
+| Lineamientos de testing | `testing/testing-guidelines.md` | `/java-testing-architect` |
+| Diagramas C4 (Contexto, Contenedores, Componentes) | `c4/c4-diagrams.md` | `/c4-architecture` |
 
 ## Instalacion
 

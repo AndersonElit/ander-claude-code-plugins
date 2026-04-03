@@ -111,7 +111,8 @@ Client Requirements
           ↓
 ┌─────────────────────────────┐
 │  software-architect-lead    │  ← Runs /c4-architecture, /relational-db-schema-builder,
-│  (Phase 3: Design)          │     /nosql-schema-builder, /openapi-doc-builder
+│  (Phase 3: Design)          │     /nosql-schema-builder, /openapi-doc-builder,
+│                              │     /java-testing-architect
 └─────────┬───────────────────┘
           │ returns design artifacts
           ↓
@@ -124,7 +125,7 @@ Client Requirements
 **Document output locations:**
 - PRD → `docs/prd/PRD-<project-name>.md`
 - SRS → `docs/srs/SRS-<project-name>.md`
-- Design deliverables → `docs/design/` (openapi/, events/, scaffold/, database/, c4/)
+- Design deliverables → `docs/design/` (openapi/, events/, scaffold/, database/, testing/, c4/)
 
 ## Key Conventions
 
