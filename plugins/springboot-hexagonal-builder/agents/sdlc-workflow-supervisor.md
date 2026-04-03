@@ -147,6 +147,7 @@ Arquitecto, basándote en los documentos adjuntos y esta hoja de ruta, genera **
 3. **Blueprint de Estructura del Proyecto** (`docs/design/scaffold/project-structure.md`) — Documenta la estructura de encarpetado hexagonal completa (NO generar código). Lista todas las clases, paquetes y responsabilidades.
 4. **Modelo Entidad-Relación** (`docs/design/database/er-model.md` + `docs/design/database/schema.sql`) — usando `/relational-db-schema-builder` y/o `/nosql-schema-builder`. El `.sql` debe ser ejecutable directamente.
 5. **Diagramas C4** (`docs/design/c4/c4-diagrams.md`) — usando `/c4-architecture`. Obligatorio: Contexto, Contenedores y Componentes (uno por microservicio).
+6. **Lineamientos de Testing** (`docs/design/testing/testing-guidelines.md`) — usando `/java-testing-architect`. Define estrategia de tests unitarios e integración por capa hexagonal.
 
 ### Matriz de Trazabilidad Requerida
 Cada decisión arquitectónica debe referenciar el requisito (RF-XXX / RNF-XXX) que la justifica.
@@ -166,6 +167,7 @@ After the architect delivers design artifacts, perform a **traceability audit**:
 - [ ] `docs/design/database/schema.sql` — Executable DDL script
 - [ ] `docs/design/scaffold/project-structure.md` — Hexagonal structure blueprint
 - [ ] `docs/design/events/event-schemas.md` — Event schemas (only if messaging is in scope)
+- [ ] `docs/design/testing/testing-guidelines.md` — Unit & integration test guidelines
 
 If any mandatory deliverable is missing, **reject immediately** and direct the architect to generate it before proceeding.
 

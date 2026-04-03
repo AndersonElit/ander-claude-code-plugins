@@ -48,6 +48,8 @@ docs/design/
 ├── database/
 │   ├── er-model.md                    → ER diagram + data dictionary
 │   └── schema.sql                     → DDL script (CREATE TABLE / indexes / constraints)
+├── testing/
+│   └── testing-guidelines.md          → Unit & integration test strategy and guidelines
 └── c4/
     └── c4-diagrams.md                 → C4 Context, Container, and Component diagrams
 ```
@@ -156,7 +158,51 @@ docs/design/
 
 ---
 
-### Deliverable 5: C4 Technical Diagrams (Diagramas Técnicos C4)
+### Deliverable 5: Testing Guidelines (Lineamientos de Testing)
+
+**File**: `docs/design/testing/testing-guidelines.md`
+**Skill**: Use `/java-testing-architect` to define the testing strategy.
+**Scope**: **Only unit tests and integration tests**. Do NOT include E2E, performance, load, or other test types unless the user explicitly requests them.
+
+**Required content**:
+
+#### Unit Tests Section
+- Testing framework and libraries to use (JUnit 5, Mockito, AssertJ, reactor-test, etc.) with versions
+- **Per-layer testing rules** aligned with hexagonal architecture:
+  - **Domain layer** (`domain/model`): How to test entities, value objects, domain events, and domain exceptions. No mocks needed — pure logic tests.
+  - **Application layer** (`application/use-cases`): How to test use case implementations. Which ports to mock (output ports only). Verify business orchestration logic.
+  - **Adapters layer** (`driven-adapters/*`): How to test repository adapters. Mock vs real DB guidance for unit scope.
+  - **Entry points** (`entry-points/rest-api`): How to test controllers with `WebTestClient`. Mock use cases. Verify request/response mapping and HTTP status codes.
+- Naming convention for test classes and methods (e.g., `<Class>Test`, `should_<expected>_when_<condition>`)
+- Test structure pattern: Given/When/Then or Arrange/Act/Assert
+- What to assert and what NOT to assert (avoid testing framework internals)
+- Reactive testing patterns with `StepVerifier` for WebFlux chains
+
+#### Integration Tests Section
+- **Per-adapter integration test rules**:
+  - **PostgreSQL adapter**: Use Testcontainers with PostgreSQL. Verify R2DBC queries, mappings, and transactions against a real database.
+  - **MongoDB adapter**: Use Testcontainers with MongoDB. Verify document persistence, reactive queries, and index behavior.
+  - **RabbitMQ adapter** (if applicable): Use Testcontainers with RabbitMQ. Verify message publishing, consumption, and DLQ routing.
+- Integration test annotations and configuration (`@SpringBootTest`, `@DataR2dbcTest`, `@Testcontainers`, custom slices)
+- Test data setup and teardown strategy (per-test cleanup vs transactional rollback)
+- How to initialize the schema in test containers (reference to `schema.sql` from Deliverable 4)
+- Test profiles and configuration (`application-test.yml`)
+
+#### Test Organization
+- Directory structure for tests mirroring `src/main/java` package layout
+- Which tests go in which Maven module (unit tests in every module, integration tests in adapter modules)
+- Test tagging/categorization for selective execution (`@Tag("unit")`, `@Tag("integration")`)
+
+#### Coverage Expectations
+- Minimum coverage targets per layer (e.g., domain 90%+, use cases 85%+, adapters 80%+)
+- What counts as meaningful coverage vs vanity coverage
+- Classes/methods explicitly excluded from coverage requirements (e.g., DTOs, config classes, generated code)
+
+**Quality criteria**: A developer must be able to write any unit or integration test for any layer of the application **solely from this document**, knowing exactly which libraries to use, what to mock, what to assert, and how to structure the test.
+
+---
+
+### Deliverable 6: C4 Technical Diagrams (Diagramas Técnicos C4)
 
 **File**: `docs/design/c4/c4-diagrams.md`
 **Skill**: Use `/c4-architecture` to generate all diagrams in Mermaid syntax.
@@ -194,7 +240,8 @@ When designing a solution, follow this strict order:
 5. **Define API Contracts** (Deliverable 1) — Design all endpoints and models. Use `/openapi-doc-builder`.
 6. **Define Event Schemas** (Deliverable 2) — If messaging is involved, define all events and message schemas.
 7. **Document Project Structure** (Deliverable 3) — Blueprint the scaffold with all classes, packages, and responsibilities.
-8. **Self-Validate** — Run the verification checklist. Ensure all deliverables are consistent with each other (e.g., API models match DB entities, events reference correct domain objects, scaffold lists all classes needed by the API and events).
+8. **Define Testing Guidelines** (Deliverable 5) — Define unit and integration test strategy per layer. Use `/java-testing-architect`.
+9. **Self-Validate** — Run the verification checklist. Ensure all deliverables are consistent with each other (e.g., API models match DB entities, events reference correct domain objects, scaffold lists all classes needed by the API and events, testing guidelines reference the correct layers from the scaffold).
 
 ---
 
@@ -261,6 +308,7 @@ Before delivering the design, verify **every item**. Do not hand off to developm
 - [ ] `docs/design/database/schema.sql` is a complete, executable DDL script
 - [ ] `docs/design/scaffold/project-structure.md` lists all classes with packages and responsibilities
 - [ ] `docs/design/events/event-schemas.md` exists (if messaging is in scope) with complete JSON schemas
+- [ ] `docs/design/testing/testing-guidelines.md` contains unit and integration test guidelines per layer
 
 ### Cross-Deliverable Consistency
 - [ ] Every entity in the ER model has corresponding `components/schemas` in the OpenAPI spec
@@ -269,6 +317,8 @@ Before delivering the design, verify **every item**. Do not hand off to developm
 - [ ] Every event in the event schemas maps to a producer/consumer class in the scaffold
 - [ ] C4 Component diagrams reflect the same classes/packages described in the scaffold
 - [ ] The `.sql` file matches the ER diagram 1:1 (no missing tables, no extra tables)
+- [ ] Testing guidelines reference the same layers, modules, and adapters described in the scaffold
+- [ ] Integration test guidelines reference `schema.sql` from the DB deliverable for test container initialization
 
 ### Architectural Quality
 - [ ] Are all SOLID principles respected?
