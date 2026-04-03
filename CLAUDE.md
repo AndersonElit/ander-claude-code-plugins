@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides nine skills and two agents:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides ten skills and two agents:
 
 **Skills:**
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
@@ -18,6 +18,7 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 - **nosql-schema-builder** — Designs and documents NoSQL database schemas (MongoDB, DynamoDB, Cassandra), collection structures, document modeling, JSON Schema validations, and indexing strategies
 - **openapi-doc-builder** — Generates API documentation using OpenAPI 3.x/Swagger specification, including YAML specs, endpoint references, and integration guides
 - **planning** — Guides interactive requirement gathering for development tasks
+- **sdlc-workflow-supervisor** — Orchestrates the full SDLC workflow from raw client requirements to architectural design, enforcing quality gates and traceability between phases. Accepts client requirements as argument.
 
 **Agents:**
 - **requirements-analyst** — Autonomous agent for project planning, requirements analysis, and PRD generation. Produces a PRD and then invokes `/srs-document-builder` to generate the formal IEEE 830 SRS document
