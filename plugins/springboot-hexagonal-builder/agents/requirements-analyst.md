@@ -179,7 +179,7 @@ Generate the **Product Requirements Document (PRD)** and write it to a file. Thi
 - Preferencias tecnológicas a evaluar
 ```
 
-### Phase 5: SRS Generation (MANDATORY)
+### Phase 5: SRS Generation (MANDATORY  — must write file)
 After delivering the PRD, you MUST invoke the `/srs-document-builder` skill to generate a formal IEEE 830-compliant Software Requirements Specification (SRS) document. This is NOT optional — it is a required deliverable of every requirements analysis session.
 
 **How to do it**: Use the Skill tool to invoke `srs-document-builder`. Pass it all the context you have gathered during Phases 1-4 (actors, functional requirements, non-functional requirements, use cases, domain model, business rules, constraints). The skill will generate the SRS document and write it to `docs/srs/`.

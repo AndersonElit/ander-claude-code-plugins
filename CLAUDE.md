@@ -6,11 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides eight skills and one agent:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides nine skills and three agents:
 
 **Skills:**
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
 - **java-development-best-practices** — Reviews, refactors, and generates Java code applying SOLID, Clean Code (KISS/DRY/YAGNI), and GoF patterns
+- **java-testing-architect** — Generates, reviews, and refactors tests for Java microservices following hexagonal architecture testing best practices
 - **c4-architecture** — Generates C4 model architecture diagrams in Mermaid syntax
 - **srs-document-builder** — Generates Software Requirements Specification (SRS/ERS) documents based on IEEE 830 for the requirements analysis phase
 - **relational-db-schema-builder** — Generates relational database schema documentation, ER diagrams, DDL scripts, and data dictionaries applying normalization and design best practices
@@ -20,6 +21,8 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 
 **Agents:**
 - **requirements-analyst** — Autonomous agent for project planning, requirements analysis, and PRD generation. Produces a PRD and then invokes `/srs-document-builder` to generate the formal IEEE 830 SRS document
+- **software-architect-lead** — Elite Software Architect & Tech Lead agent for architectural design, technical decision-making, solution design, code review, RFC creation, stack selection, and technical documentation
+- **sdlc-workflow-supervisor** — Orchestrates the full SDLC pipeline from raw client requirements to architecture design. Receives client requirements as input, invokes `requirements-analyst` to generate PRD/SRS documents, validates document quality, and ensures traceability between requirements and architecture deliverables
 
 ## Architecture
 
@@ -72,6 +75,55 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 
 1. Create `plugins/<plugin-name>/skills/<skill-name>/SKILL.md` with YAML frontmatter (`name`, `description`) and instructions
 2. Place reference material in `references/` subdirectory if needed — skills load these on demand
+
+## Adding a New Agent to an Existing Plugin
+
+1. Create `plugins/<plugin-name>/agents/<agent-name>.md` with YAML frontmatter and instructions
+2. Required frontmatter fields: `name`, `description` (activation triggers — same importance as SKILL.md), `model` (sonnet/opus/haiku), `color`, `memory` (project/user/none)
+3. The `description` field must include example user prompts and assistant responses showing when to invoke the agent
+4. Agents can invoke skills internally via `Skill(skill: "<skill-name>")` and other agents via the Agent tool
+
+## Agent Orchestration Pipeline
+
+The three agents form a pipeline for the full SDLC workflow:
+
+```
+Client Requirements
+        ↓
+┌─────────────────────────────┐
+│  sdlc-workflow-supervisor   │  ← Entry point: receives raw requirements OR existing PRD/SRS
+│  (orchestrator / QA gate)   │
+└─────────┬───────────────────┘
+          │ invokes (if no PRD/SRS exist)
+          ↓
+┌─────────────────────────────┐
+│   requirements-analyst      │  ← Runs /planning → Analysis → PRD → /srs-document-builder
+│   (Phase 1: Planning)       │
+│   Output: docs/prd/ + docs/srs/
+└─────────┬───────────────────┘
+          │ returns PRD + SRS
+          ↓
+┌─────────────────────────────┐
+│  sdlc-workflow-supervisor   │  ← Validates (10/10 required), builds Design Roadmap
+│  (validation & hand-off)    │
+└─────────┬───────────────────┘
+          │ hands off to
+          ↓
+┌─────────────────────────────┐
+│  software-architect-lead    │  ← Runs /c4-architecture, /relational-db-schema-builder,
+│  (Phase 3: Design)          │     /nosql-schema-builder, /openapi-doc-builder
+└─────────┬───────────────────┘
+          │ returns design artifacts
+          ↓
+┌─────────────────────────────┐
+│  sdlc-workflow-supervisor   │  ← Traceability audit (requirements ↔ architecture)
+│  (post-design verification) │
+└─────────────────────────────┘
+```
+
+**Document output locations:**
+- PRD → `docs/prd/PRD-<project-name>.md`
+- SRS → `docs/srs/SRS-<project-name>.md`
 
 ## Key Conventions
 
