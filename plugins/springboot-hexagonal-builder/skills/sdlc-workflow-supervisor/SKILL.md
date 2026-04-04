@@ -63,6 +63,51 @@ Una vez el Arquitecto entregue, verifique:
 - **Mapeo:** Todo RF-XXX esta cubierto por un componente de diseno?
 - **Huerfanos:** Identifique decisiones de diseno no justificadas por requisitos.
 
+### ESTADO 4: Reporte Final de Ejecucion (Execution Summary Report)
+
+Al completar todos los estados anteriores, genere un reporte final consolidado y guardelo en `docs/sdlc-report/SDLC-EXECUTION-REPORT.md`. El reporte debe contener:
+
+#### 4.1 Resumen Ejecutivo
+- Nombre del proyecto y fecha de ejecucion.
+- Estado final del flujo (exitoso / exitoso con correcciones / fallido).
+- Tiempo aproximado del ciclo completo.
+
+#### 4.2 Bitacora de Ejecucion Paso a Paso
+
+Para **cada estado ejecutado** (0, 1, 2, 3), documente en formato tabla:
+
+| Estado | Descripcion | Agente Invocado | Validaciones Realizadas | Resultado | Observaciones |
+|--------|-------------|-----------------|-------------------------|-----------|---------------|
+| 0 | Ingesta de Requerimientos | `requirements-analyst` | Existencia de PRD y SRS generados | OK / FAIL | Detalles relevantes |
+| 1 | Quality Gate | _(supervisor)_ | Completitud, Precision, Trazabilidad, Consistencia/Testabilidad | Score X/10 | Gaps encontrados (si aplica) |
+| ... | ... | ... | ... | ... | ... |
+
+#### 4.3 Detalle de Validaciones por Estado
+
+Para cada estado, liste:
+- **Validaciones ejecutadas:** Que criterios se evaluaron.
+- **Resultado por criterio:** Aprobado / Rechazado con justificacion breve.
+- **Acciones correctivas:** Si hubo re-invocaciones de agentes, indicar cuantas iteraciones y que gaps se corrigieron.
+
+#### 4.4 Agentes Invocados (Resumen)
+
+| Agente | Veces Invocado | Motivo de cada Invocacion | Entregables Generados |
+|--------|---------------|---------------------------|----------------------|
+| `requirements-analyst` | N | Motivos por invocacion | PRD, SRS, correcciones... |
+| `software-architect-lead` | N | Motivos por invocacion | C4, OpenAPI, ER, Blueprint... |
+
+#### 4.5 Trazabilidad Final
+- Total de requisitos funcionales identificados (RF-XXX).
+- Total cubiertos por componentes de diseno.
+- Requisitos huerfanos (sin cobertura de diseno), si los hay.
+- Decisiones de diseno huerfanas (sin requisito asociado), si las hay.
+
+#### 4.6 Conclusiones y Recomendaciones
+- Problemas recurrentes detectados durante el flujo.
+- Recomendaciones para el siguiente ciclo o fase de implementacion.
+
+> **REGLA:** Este reporte es OBLIGATORIO. Nunca finalice el flujo SDLC sin generar y presentar este reporte al usuario.
+
 ---
 
 ## ESTRUCTURA DE RESPUESTA OBLIGATORIA
@@ -73,6 +118,7 @@ Cada interaccion con el usuario debe incluir:
 2. **[ANALISIS TECNICO]**: Breve evaluacion de la calidad o gaps detectados.
 3. **[DECISION]**: Que agente se invoca y por que.
 4. **[TOOL CALL]**: Ejecucion de la herramienta `Agent`.
+5. **[PROGRESO]**: Registro interno de lo ejecutado hasta el momento (agente invocado, validaciones, resultado) para alimentar el reporte final del ESTADO 4.
 
 ## IDIOMA Y TONO
 
