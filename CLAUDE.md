@@ -85,32 +85,48 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 
 ## Agent Workflow
 
-The two agents work sequentially for the full SDLC workflow:
+The `sdlc-workflow-supervisor` skill orchestrates both agents sequentially with quality gates and formal INPUT/OUTPUT contracts between phases:
 
 ```
 Client Requirements
         ↓
-┌─────────────────────────────┐
-│   requirements-analyst      │  ← Runs /planning → Analysis → PRD → /srs-document-builder
-│   (Phase 1: Planning)       │
-│   Output: docs/prd/ + docs/srs/
-└─────────┬───────────────────┘
-          │ returns PRD + SRS
-          ↓
-┌─────────────────────────────┐
-│  software-architect-lead    │  ← Runs /c4-architecture, /relational-db-schema-builder,
-│  (Phase 2: Design)          │     /nosql-schema-builder, /openapi-doc-builder,
-│                              │     /java-testing-architect
-└─────────┬───────────────────┘
-          │ returns design artifacts in docs/design/
-          ↓
-         done
+┌───────────────────────────────────────────────────────────────┐
+│  sdlc-workflow-supervisor (orchestrator skill)                │
+│                                                               │
+│  ESTADO 0: Ingesta ─────────────────────────────────────────┐ │
+│  │  INPUT:  raw requirements                                │ │
+│  │  Agent:  requirements-analyst                            │ │
+│  │  OUTPUT: docs/prd/PRD-<name>.md + docs/srs/SRS-<name>.md│ │
+│  ├──────────────────────────────────────────────────────────┘ │
+│  │                                                            │
+│  ESTADO 1: Quality Gate (supervisor validates PRD+SRS)        │
+│  │  Score < 10/10 → re-invokes requirements-analyst with gaps │
+│  ├────────────────────────────────────────────────────────────┤
+│  │                                                            │
+│  ESTADO 2: Design Hand-off ─────────────────────────────────┐ │
+│  │  INPUT:  PRD + SRS paths + design roadmap                │ │
+│  │  Agent:  software-architect-lead                         │ │
+│  │  OUTPUT: docs/design/ (c4/, openapi/, database/,         │ │
+│  │          scaffold/, testing/, events/)                    │ │
+│  ├──────────────────────────────────────────────────────────┘ │
+│  │                                                            │
+│  ESTADO 3: Traceability Audit (RF-XXX ↔ design components)   │
+│  │                                                            │
+│  ESTADO 4: Execution Report                                   │
+│  │  OUTPUT: docs/sdlc-report/SDLC-EXECUTION-REPORT.md        │
+└───────────────────────────────────────────────────────────────┘
 ```
+
+**Agent handoff contracts:**
+- `requirements-analyst` receives raw requirements → outputs PRD + SRS files
+- `software-architect-lead` receives explicit paths to PRD + SRS + a synthesized design roadmap → outputs all design artifacts
+- The supervisor verifies file existence at each transition before proceeding
 
 **Document output locations:**
 - PRD → `docs/prd/PRD-<project-name>.md`
 - SRS → `docs/srs/SRS-<project-name>.md`
 - Design deliverables → `docs/design/` (openapi/, events/, scaffold/, database/, testing/, c4/)
+- SDLC Execution Report → `docs/sdlc-report/SDLC-EXECUTION-REPORT.md`
 
 ## Key Conventions
 
