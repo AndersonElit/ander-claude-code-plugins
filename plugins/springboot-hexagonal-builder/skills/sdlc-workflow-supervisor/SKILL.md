@@ -172,8 +172,33 @@ Para cada estado, liste:
 - Requisitos huerfanos (sin cobertura de diseno), si los hay.
 - Decisiones de diseno huerfanas (sin requisito asociado), si las hay.
 
-#### 4.6 Conclusiones y Recomendaciones
+#### 4.6 Registro de Errores y Resoluciones
+
+Para **cada error** ocurrido durante la ejecucion, documente en formato tabla:
+
+| # | Estado | Tipo de Error | Descripcion del Error | Causa Raiz | Resolucion Aplicada | Agente Responsable | Iteracion |
+|---|--------|---------------|----------------------|------------|---------------------|-------------------|-----------|
+| 1 | 0 | Entregable faltante | No se genero el archivo SRS | El agente finalizo sin invocar /srs-document-builder | Re-invocacion de requirements-analyst con instruccion explicita | requirements-analyst | 2da |
+| 2 | 1 | Quality Gate fallido | Score 7/10 — precision insuficiente | Requisitos RF-003, RF-007 sin IDs unicos | Re-invocacion con reporte de gaps especifico | requirements-analyst | 2da |
+| ... | ... | ... | ... | ... | ... | ... | ... |
+
+**Tipos de error a registrar:**
+- **Entregable faltante:** Archivo esperado no fue generado por el agente.
+- **Quality Gate fallido:** Score por debajo del umbral 10/10 con detalle de criterios reprobados.
+- **Validacion de consistencia fallida:** RF huerfanos o decisiones de diseno sin requisito asociado.
+- **Error de agente:** El agente no completo su tarea, produjo output incorrecto o fuera de alcance.
+- **Error de invocacion:** Fallo al invocar un agente o skill (timeout, contexto insuficiente, etc.).
+
+**Para cada error incluir:**
+- **Causa raiz:** Por que ocurrio (no solo que ocurrio).
+- **Resolucion:** Accion concreta tomada para corregirlo.
+- **Impacto en el flujo:** Si causo re-invocaciones, retrasos o cambios en la estrategia.
+
+> Si no hubo errores durante la ejecucion, incluir la seccion con la nota: "No se registraron errores durante la ejecucion del flujo SDLC."
+
+#### 4.7 Conclusiones y Recomendaciones
 - Problemas recurrentes detectados durante el flujo.
+- Patrones de error identificados (si los hay) y como prevenirlos en futuros ciclos.
 - Recomendaciones para el siguiente ciclo o fase de implementacion.
 
 > **REGLA:** Este reporte es OBLIGATORIO. Nunca finalice el flujo SDLC sin generar y presentar este reporte al usuario.
@@ -189,6 +214,7 @@ Cada interaccion con el usuario debe incluir:
 3. **[DECISION]**: Que agente se invoca y por que.
 4. **[TOOL CALL]**: Ejecucion de la herramienta `Agent`.
 5. **[PROGRESO]**: Registro interno de lo ejecutado hasta el momento (agente invocado, validaciones, resultado) para alimentar el reporte final del ESTADO 4.
+6. **[ERRORES]**: Si ocurrio un error en el estado actual, registrar: tipo de error, descripcion, causa raiz y resolucion aplicada. Este registro alimenta la seccion 4.6 del reporte final.
 
 ## IDIOMA Y TONO
 
