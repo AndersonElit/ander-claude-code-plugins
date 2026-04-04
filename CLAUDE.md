@@ -85,7 +85,7 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 
 ## Agent Workflow
 
-The `sdlc-workflow-supervisor` skill orchestrates both agents sequentially with quality gates and formal INPUT/OUTPUT contracts between phases:
+The `sdlc-workflow-supervisor` skill orchestrates all three agents sequentially with quality gates and formal INPUT/OUTPUT contracts between phases:
 
 ```
 Client Requirements
@@ -112,7 +112,20 @@ Client Requirements
 │  │                                                            │
 │  ESTADO 3: Traceability Audit (RF-XXX ↔ design components)   │
 │  │                                                            │
-│  ESTADO 4: Execution Report                                   │
+│  ESTADO 4: Development ─────────────────────────────────────┐ │
+│  │  INPUT:  docs/design/ + PRD + SRS                        │ │
+│  │  Agent:  backend-java-developer                          │ │
+│  │  OUTPUT: source code + docs/development/*                │ │
+│  ├──────────────────────────────────────────────────────────┘ │
+│  │                                                            │
+│  ESTADO 5: Architectural Review ────────────────────────────┐ │
+│  │  Agent:  software-architect-lead (reviewer)              │ │
+│  │  APPROVED → ESTADO 6                                     │ │
+│  │  REJECTED → REVIEW-CORRECTIONS.md → re-invoke ESTADO 4  │ │
+│  │  Max 3 review cycles                                     │ │
+│  ├──────────────────────────────────────────────────────────┘ │
+│  │                                                            │
+│  ESTADO 6: Execution Report                                   │
 │  │  OUTPUT: docs/sdlc-report/SDLC-EXECUTION-REPORT.md        │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -120,12 +133,16 @@ Client Requirements
 **Agent handoff contracts:**
 - `requirements-analyst` receives raw requirements → outputs PRD + SRS files
 - `software-architect-lead` receives explicit paths to PRD + SRS + a synthesized design roadmap → outputs all design artifacts
+- `backend-java-developer` receives design artifacts + PRD + SRS → outputs source code + development deliverables
+- `software-architect-lead` (reviewer) receives code + development docs + design reference → outputs approval or REVIEW-CORRECTIONS.md
 - The supervisor verifies file existence at each transition before proceeding
 
 **Document output locations:**
 - PRD → `docs/prd/PRD-<project-name>.md`
 - SRS → `docs/srs/SRS-<project-name>.md`
 - Design deliverables → `docs/design/` (openapi/, events/, scaffold/, database/, testing/, c4/)
+- Development deliverables → `docs/development/` (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, LOCAL-TOOLS, DIAGRAMS, TECH-STACK, openapi/)
+- Review corrections → `docs/development/REVIEW-CORRECTIONS.md` (when architectural review rejects)
 - SDLC Execution Report → `docs/sdlc-report/SDLC-EXECUTION-REPORT.md`
 
 ## Key Conventions
