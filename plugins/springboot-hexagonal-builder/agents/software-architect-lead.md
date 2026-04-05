@@ -173,6 +173,15 @@ docs/design/
 
 **IMPORTANT**: This deliverable is **documentation only**. Do NOT execute `/hexagonal-architecture-builder` or generate actual code. Only describe and illustrate the structure that will be generated in the development phase. Follow the package conventions from the Hexagonal Architecture Structure Reference section below.
 
+**Directory convention**: All microservices are created under a `services/` directory at the project root. The `docker-compose.yml` for shared infrastructure also lives inside `services/`. Document the structure as:
+```
+services/
+├── docker-compose.yml
+├── <service-name-1>/
+├── <service-name-2>/
+└── ...
+```
+
 **Quality criteria**: A developer (or the development agent) must know exactly which classes to create, in which packages, and with what responsibilities — without any ambiguity.
 
 ---

@@ -75,28 +75,77 @@ Map:
 
 Present the development plan to the user and get approval before coding.
 
+### Initialize Progress Tracking File
+
+After the plan is approved, create `docs/development/PROGRESS.md` with the following structure:
+
+```markdown
+# Development Progress Tracker
+
+## Microservices Execution Order
+
+| # | Microservice | Database | Messaging | Status | Phase Completed |
+|---|-------------|----------|-----------|--------|-----------------|
+| 1 | ms-xxx | postgres | rabbit-producer | PENDING | - |
+| 2 | ms-yyy | mongo | rabbit-consumer | PENDING | - |
+| ... | ... | ... | ... | ... | ... |
+
+## Current State
+- **Currently working on:** (none)
+- **Last completed:** (none)
+- **Next up:** ms-xxx (#1)
+
+## Completed Microservices Log
+(empty)
+```
+
+Populate the table from the development plan. This file is your **single source of truth** for tracking progress. Update it after completing each phase of each microservice.
+
+> **⚠️ CRITICAL**: Before starting ANY work, check if `docs/development/PROGRESS.md` already exists. If it does, READ IT FIRST — you are resuming a previous session. Skip all microservices marked as `DONE` and continue from the first `PENDING` or `IN_PROGRESS` microservice.
+
 ---
 
-## PHASE 2: INFRASTRUCTURE SETUP (Docker)
+## PHASE 2: SERVICES DIRECTORY & INFRASTRUCTURE SETUP
+
+### Step 2.0: Create the `services/` Directory
+
+All microservices and shared infrastructure files live under a `services/` directory at the project root:
+
+```
+<project-root>/
+├── docs/
+├── services/
+│   ├── docker-compose.yml       ← shared infrastructure (DB, messaging, mocks)
+│   ├── ms-orders/               ← each microservice as a subdirectory
+│   ├── ms-inventory/
+│   └── ...
+└── ...
+```
+
+1. **Create the `services/` directory** if it doesn't already exist: `mkdir -p services`
+2. All subsequent scaffold invocations (Phase 3) MUST run from inside the `services/` directory so that each microservice is generated as `services/<service-name>/`.
+3. The `docker-compose.yml` goes inside `services/` (not at the project root).
+
+### Step 2.1: Infrastructure Setup (Docker)
 
 For each infrastructure dependency identified in the design docs, create Docker containers:
 
-### Database
-- **PostgreSQL**: Create `docker-compose.yml` with postgres container, proper environment variables, health checks, and volume mounts
+#### Database
+- **PostgreSQL**: Create `services/docker-compose.yml` with postgres container, proper environment variables, health checks, and volume mounts
 - **MongoDB**: Create mongo container with initialization scripts if needed
 
-### Messaging
+#### Messaging
 - **RabbitMQ**: Create rabbitmq container with management plugin enabled
 
-### External API Mocks
-- **WireMock**: Create WireMock container(s) for every external API dependency. Define stub mappings in `__files/` and `mappings/` directories that match the expected request/response contracts from the design docs.
+#### External API Mocks
+- **WireMock**: Create WireMock container(s) for every external API dependency. Define stub mappings in `services/__files/` and `services/mappings/` directories that match the expected request/response contracts from the design docs.
 
 ### Rules for Docker:
 - Always use `docker compose` (v2 syntax)
-- Group all containers in a single `docker-compose.yml` (or `docker-compose.dev.yml`) at the project root
+- Group all containers in a single `services/docker-compose.yml` (or `services/docker-compose.dev.yml`)
 - Use explicit container names, networks, health checks
 - If a Docker image doesn't exist for a required tool: **STOP**, notify the user, explain the situation, and ask if they want to (a) find an alternative, (b) install it natively, or (c) skip that component
-- Verify containers are running with `docker compose ps` after starting them
+- Verify containers are running with `docker compose -f services/docker-compose.yml ps` after starting them
 
 ---
 
@@ -106,35 +155,78 @@ For each infrastructure dependency identified in the design docs, create Docker 
 
 Every microservice MUST be created using the JBang scaffold via the `/hexagonal-architecture-builder` skill. Writing the project structure by hand is **prohibited** — the scaffold guarantees consistency in POM hierarchy, module layout, dependency flow, Spring Boot configuration, and `.env` setup.
 
+### ⚠️ CRITICAL: One-Microservice-At-A-Time Workflow
+
+For microservices architectures, you MUST process **one microservice at a time through the COMPLETE cycle** (scaffold → implement → compile → quality review → tests) before moving to the next one. This prevents context loss and ensures each service is fully functional before proceeding.
+
+**The cycle for EACH microservice is:**
+1. **Re-read** the relevant design docs for THIS specific microservice (Step 3.0)
+2. **Scaffold** the microservice (Step 3.1)
+3. **Implement** all layers (Step 3.2)
+4. **Compile** and fix until clean (Step 3.3)
+5. **Quality review** (Step 3.4)
+6. **Write tests** and run until green (Phase 4 — for THIS microservice only)
+7. **Update PROGRESS.md** → mark as DONE, set next microservice
+8. **Move to next microservice** → go back to step 1
+
+### Step 3.0: Re-Read Design Docs for Current Microservice (MANDATORY BEFORE EACH SERVICE)
+
+> **⚠️ THIS STEP IS MANDATORY** before implementing each microservice. Do NOT skip it, even if you already read the docs earlier. Context is lost over long conversations — re-reading ensures accuracy.
+
+Before starting work on each microservice, re-read **only the sections relevant to that specific service**:
+
+1. **Read `docs/design/scaffold/project-structure.md`** — Find the section for THIS microservice: its modules, classes, packages, and responsibilities.
+2. **Read `docs/design/openapi/openapi-spec.yaml`** (or the service-specific file if split) — Find the endpoints for THIS microservice only.
+3. **Read `docs/design/database/er-model.md`** — Find the entities/tables owned by THIS microservice only.
+4. **Read `docs/design/events/event-schemas.md`** (if exists) — Find the events this microservice produces or consumes.
+5. **Read `docs/design/testing/testing-guidelines.md`** — Review the testing patterns (you'll need them for step 6).
+6. **Read `docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md`** (if exists) — Find THIS microservice's bounded context, inter-service dependencies, and data consistency patterns.
+
+After reading, write a brief summary in your response of what THIS microservice needs:
+- Service name, database, messaging system
+- Domain entities to create
+- Endpoints to implement
+- Events to publish/consume
+- Inter-service dependencies
+
+This summary acts as your working checklist for the implementation.
+
 ### Step 3.1: Scaffold Each Microservice
 
-For **each** microservice identified in the development plan (Phase 1):
+For the **current** microservice (per the order in PROGRESS.md):
 
-1. **Determine JBang arguments** from the design docs:
+1. **Update PROGRESS.md** — Set status to `IN_PROGRESS` and phase to `scaffold`.
+
+2. **Change to the `services/` directory** — All scaffolds MUST be generated inside `services/`:
+   ```bash
+   cd services
+   ```
+
+3. **Determine JBang arguments** from the design docs:
    - `--service-name`: The service name from the scaffold blueprint (kebab-case, e.g., `ms-orders`)
    - `--database`: `postgres` or `mongo` (from the database design)
    - `--messaging-system`: `rabbit-producer`, `rabbit-consumer`, or `none` (from the event schemas)
 
-2. **Invoke the skill** to run the JBang scaffold:
+4. **Invoke the skill** to run the JBang scaffold:
    ```
    Skill(skill: "hexagonal-architecture-builder")
    ```
-   Instruct it to scaffold the microservice with the determined arguments. The skill will:
+   Instruct it to scaffold the microservice **from the `services/` directory** with the determined arguments. The skill will:
    - Validate prerequisites (Java 17+, JBang)
    - Run `jbang <plugin-dir>/templates/jbang/MavenHexagonalScaffold.java --service-name=<name> --database=<db> --messaging-system=<msg>`
-   - Generate the complete multi-module Maven project with Hexagonal Architecture
+   - Generate the complete multi-module Maven project with Hexagonal Architecture at `services/<service-name>/`
 
-3. **If the design requires a technology NOT natively supported** by the scaffold (e.g., MySQL, Kafka, Redis, SQS), the skill will use the closest supported option and then configure the unsupported technology manually in the project (Phase 3 of the skill).
+5. **If the design requires a technology NOT natively supported** by the scaffold (e.g., MySQL, Kafka, Redis, SQS), the skill will use the closest supported option and then configure the unsupported technology manually in the project (Phase 3 of the skill).
 
-4. **Verify the scaffold was created** — check that the service directory exists with all expected modules.
+6. **Verify the scaffold was created** — check that `services/<service-name>/` exists with all expected modules.
 
-**For microservices architectures**, repeat steps 1-4 for **every** microservice in sequence (dependency order from the development plan). Each microservice is its own independent scaffold invocation.
+7. **Update PROGRESS.md** — Set phase to `scaffold-done`.
 
-### Step 3.2: Implement Business Logic per Service
+### Step 3.2: Implement Business Logic for Current Service
 
-After scaffolding, implement the actual business components for each microservice. The scaffold creates the skeleton — now populate it with the domain logic from the design docs.
+Implement the actual business components for the **current** microservice. The scaffold creates the skeleton — now populate it with the domain logic from the design docs read in Step 3.0.
 
-For each microservice, follow this order:
+Follow this order:
 
 #### A. Domain Layer (`domain/model`)
 Using the scaffold blueprint (`docs/design/scaffold/project-structure.md`) and the ER model (`docs/design/database/`):
@@ -173,12 +265,13 @@ Using the OpenAPI spec:
 
 ### Step 3.3: Compilation Verification Loop
 
-After implementing each microservice, run a **mandatory compilation verification cycle**:
+After implementing the current microservice, run a **mandatory compilation verification cycle**:
 
-1. **Run `mvn clean compile`** from the microservice's root directory.
+1. **Run `mvn clean compile`** from the microservice's root directory (`services/<service-name>/`).
 2. **If the build fails**: analyze every compilation error, fix the code, and run `mvn clean compile` again.
 3. **Repeat until the build succeeds with zero errors.** There is no maximum retry limit — keep fixing and recompiling until it compiles cleanly.
-4. **Only after a successful compilation**, proceed to the next step.
+4. **Update PROGRESS.md** — Set phase to `compiled`.
+5. **Only after a successful compilation**, proceed to the next step.
 
 > **⚠️ MANDATORY**: A microservice MUST compile with zero errors before writing tests, running quality reviews, or moving to the next microservice. Never skip or defer compilation errors.
 
@@ -189,6 +282,8 @@ After a clean compilation, invoke:
 Skill(skill: "java-development-best-practices")
 ```
 to review and validate code quality, applying SOLID principles, Clean Code (KISS/DRY/YAGNI), and appropriate GoF patterns. Fix any issues found. **After fixing issues, re-run `mvn clean compile` to confirm the code still compiles cleanly.**
+
+**Update PROGRESS.md** — Set phase to `quality-reviewed`.
 
 ### Development Guidelines
 
@@ -226,7 +321,9 @@ to review and validate code quality, applying SOLID principles, Clean Code (KISS
 
 ---
 
-## PHASE 4: TESTING
+## PHASE 4: TESTING (Per Microservice)
+
+> **⚠️ IMPORTANT**: This phase is executed **per microservice** as part of the one-microservice-at-a-time cycle (after Step 3.4). Do NOT wait until all microservices are scaffolded/implemented to write tests. Test each microservice immediately after its quality review passes.
 
 All testing must be LOCAL. Use Docker containers for integration test dependencies.
 
@@ -234,7 +331,7 @@ All testing must be LOCAL. Use Docker containers for integration test dependenci
 
 ### Testing Documentation as Source of Truth
 
-Before writing ANY test, you MUST read and follow the testing strategy documentation from the design phase:
+Before writing ANY test, you MUST re-read the testing strategy documentation (you already read it in Step 3.0, but re-read if the conversation has been long):
 
 1. **Read `docs/design/testing/`** — This is the **authoritative source** for what to test, how to test it, and what coverage is expected.
 2. **Follow the test plan exactly** — The testing documentation defines: test scenarios, test types per component, coverage targets, testing patterns, and acceptance criteria. Implement tests according to those specifications.
@@ -264,14 +361,16 @@ Before writing ANY test, you MUST read and follow the testing strategy documenta
 
 ### Test Compilation & Execution Verification Loop
 
-After writing all tests for a microservice:
+After writing all tests for the **current** microservice:
 
-1. **Run `mvn clean verify`** from the microservice's root directory.
+1. **Run `mvn clean verify`** from the microservice's root directory (`services/<service-name>/`).
 2. **If any test fails or the build fails**: analyze the errors, fix the code or tests, and run `mvn clean verify` again.
 3. **Repeat until ALL tests pass and the build succeeds with zero errors.** There is no maximum retry limit — keep fixing and re-running until everything is green.
-4. **Only after a fully successful `mvn clean verify`**, proceed to Phase 5.
+4. **Update PROGRESS.md** — Set status to `DONE`, phase to `tested`. Add entry to the Completed Microservices Log with a summary of what was built. Set the "Next up" to the next PENDING microservice.
+5. **If there are more PENDING microservices** → Go back to **Step 3.0** for the next microservice.
+6. **If ALL microservices are DONE** → Proceed to Phase 5.
 
-> **⚠️ MANDATORY**: Never proceed to Phase 5 with failing tests or compilation errors. The build must be completely clean.
+> **⚠️ MANDATORY**: Never proceed to the next microservice or to Phase 5 with failing tests or compilation errors. The build must be completely clean.
 
 ---
 
@@ -279,7 +378,7 @@ After writing all tests for a microservice:
 
 Before delivering, perform a thorough compliance check:
 
-1. **Architectural Style** — If `docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md` exists, verify: all bounded contexts were implemented as separate microservices (each with its own JBang scaffold), database-per-service is enforced, communication patterns (choreography/orchestration) match the design, data consistency patterns (Saga, CQRS, Outbox) are implemented where specified, and resilience patterns (Circuit Breaker, DLQ, idempotency) are present.
+1. **Architectural Style** — If `docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md` exists, verify: all bounded contexts were implemented as separate microservices under `services/` (each with its own JBang scaffold), database-per-service is enforced, communication patterns (choreography/orchestration) match the design, data consistency patterns (Saga, CQRS, Outbox) are implemented where specified, and resilience patterns (Circuit Breaker, DLQ, idempotency) are present.
 2. **OpenAPI Contract** — Compare implemented endpoints against `docs/design/openapi/`. Every endpoint, parameter, request body, and response must match.
 3. **Database Schema** — Compare entity definitions against `docs/design/database/`. All tables/collections, columns/fields, indexes, and constraints must match.
 4. **C4 Architecture** — Verify component boundaries match the C4 diagrams.
@@ -347,6 +446,25 @@ Generate ALL of the following deliverables in `docs/development/`:
 - List of all microservices/components developed
 - Module structure for each
 - Key architectural decisions made during development
+
+---
+
+## WORKFLOW FOR ARCHITECTURAL REVIEW CORRECTIONS
+
+When re-invoked to apply corrections from an architectural review (`docs/development/REVIEW-CORRECTIONS.md`):
+
+1. **Read `docs/development/REVIEW-CORRECTIONS.md`** — Understand ALL corrections required.
+2. **Read `docs/development/PROGRESS.md`** — Confirm which microservices are already completed. Do NOT re-scaffold or re-implement completed microservices from scratch.
+3. **For each correction:**
+   - Identify which microservice and which file(s) are affected (code lives under `services/<service-name>/`).
+   - Re-read the relevant design doc section for that specific component (OpenAPI, ER model, scaffold blueprint, etc.) to understand the expected behavior.
+   - Make **surgical, targeted fixes** — only change what the correction requires.
+   - Run `mvn clean compile` from `services/<service-name>/` after fixing each microservice's corrections.
+4. **Run `mvn clean verify`** from `services/<service-name>/` on each affected microservice to ensure tests still pass.
+5. **Update `docs/development/PROGRESS.md`** — Add a section "Review Correction Cycle N" noting what was fixed.
+6. **Update any affected deliverables** in `docs/development/` (e.g., if endpoints changed, update CURL-EXAMPLES.md).
+
+> **⚠️ CRITICAL**: NEVER re-scaffold or re-implement a microservice from scratch when applying review corrections. The code already exists and compiles — make targeted fixes only. Reading PROGRESS.md confirms what is already done.
 
 ---
 

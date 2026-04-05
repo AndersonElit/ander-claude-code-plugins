@@ -176,9 +176,12 @@ Una vez el Arquitecto entregue, verifique:
   8. Lineamientos de testing en docs/design/testing/testing-guidelines.md
   9. Esquemas de eventos en docs/design/events/event-schemas.md (si existe)
   
+  IMPORTANTE: Procesa UN microservicio a la vez — ciclo completo (scaffold → implementar → compilar → tests) antes de pasar al siguiente. Crea y mantiene actualizado docs/development/PROGRESS.md para rastrear tu avance. Antes de cada microservicio, RE-LEE las secciones de la documentacion de diseno relevantes a ESE microservicio especifico para no perder contexto.
+  
   Ejecuta todas tus fases (0-6) incluyendo la generacion obligatoria de TODOS los entregables en docs/development/."
 - **Output esperado:**
   - Codigo fuente de los microservicios implementados (estructura hexagonal, tests, Docker)
+  - `docs/development/PROGRESS.md` (tracker de progreso con todos los microservicios en DONE)
   - `docs/development/TEST-REPORT.md`
   - `docs/development/SERVICE-GUIDE.md`
   - `docs/development/CURL-EXAMPLES.md`
@@ -186,7 +189,7 @@ Una vez el Arquitecto entregue, verifique:
   - `docs/development/DIAGRAMS.md`
   - `docs/development/TECH-STACK.md`
   - `docs/development/openapi/` (OpenAPI spec final)
-- **Condicion de Salida:** Verificar existencia fisica de todos los entregables obligatorios en `docs/development/` con `Read`. Si falta alguno, re-invocar al agente indicando los entregables faltantes.
+- **Condicion de Salida:** Verificar existencia fisica de todos los entregables obligatorios en `docs/development/` con `Read`. Verificar que `docs/development/PROGRESS.md` muestra TODOS los microservicios en estado `DONE`. Si falta alguno, re-invocar al agente indicando los entregables faltantes.
 
 ### ESTADO 5: Revision Arquitectonica del Codigo (Architectural Review)
 
@@ -211,7 +214,7 @@ Este estado implementa un **ciclo de revision** donde `software-architect-lead` 
   - **APROBADO:** El arquitecto valida que el codigo cumple con el diseno. Se avanza al ESTADO 6.
   - **RECHAZADO (correcciones necesarias):**
     1. Verificar que existe `docs/development/REVIEW-CORRECTIONS.md`.
-    2. Re-invocar `Agent(backend-java-developer)` con la instruccion: "Lee el documento de correcciones en docs/development/REVIEW-CORRECTIONS.md y aplica TODAS las correcciones indicadas. Actualiza los entregables en docs/development/ segun corresponda."
+    2. Re-invocar `Agent(backend-java-developer)` con la instruccion: "MODO CORRECCIONES — NO re-implementes desde cero. Los microservicios ya estan creados y funcionando. Lee docs/development/PROGRESS.md para ver el estado de todo lo completado. Lee docs/development/REVIEW-CORRECTIONS.md y aplica UNICAMENTE las correcciones indicadas con cambios quirurgicos. Para cada correccion, re-lee la seccion relevante de la documentacion de diseno (OpenAPI, ER model, scaffold, etc.) para entender el comportamiento esperado. Despues de aplicar las correcciones, ejecuta `mvn clean verify` en cada microservicio afectado para asegurar que compila y los tests pasan. Actualiza los entregables en docs/development/ segun corresponda."
     3. Una vez el desarrollador termine, re-invocar ESTADO 5 (nueva revision arquitectonica).
 
 - **Limite de iteraciones:** Maximo **3 ciclos** de revision. Si despues de 3 iteraciones aun hay correcciones pendientes, registrar las correcciones no resueltas en el reporte final y notificar al usuario para decision manual.

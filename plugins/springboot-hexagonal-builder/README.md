@@ -24,16 +24,16 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 |--------|-------------|
 | `requirements-analyst` | Planificacion de proyectos, analisis de requisitos y generacion de PRD + SRS (IEEE 830) |
 | `software-architect-lead` | Evalua estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante scorecard, genera entregables obligatorios de diseño. Invoca `/microservices-eda-architecture` cuando aplica |
-| `backend-java-developer` | Desarrollador backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Fase 4 (Desarrollo) del SDLC. Ciclo obligatorio de compilacion (`mvn clean compile`) y verificacion de tests (`mvn clean verify`) hasta build limpio. Tests unitarios e integracion obligatorios segun `docs/design/testing/` |
+| `backend-java-developer` | Desarrollador backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Fase 4 (Desarrollo) del SDLC. Procesa un microservicio a la vez (scaffold → implementar → compilar → tests) con tracker de progreso (`PROGRESS.md`). Re-lee docs de diseño antes de cada servicio. Genera bajo `services/` con Docker en `services/docker-compose.yml`. Ciclo obligatorio de compilacion y tests. En re-invocaciones aplica correcciones quirurgicas, no re-implementa desde cero |
 
 ### Flujo de trabajo
 
 Los tres agentes se usan de forma secuencial, orquestados por `sdlc-workflow-supervisor`:
 
 1. **`requirements-analyst`** recibe los requisitos del cliente → genera PRD (`docs/prd/`) y SRS (`docs/srs/`)
-2. **`software-architect-lead`** recibe el PRD/SRS → evalua el estilo arquitectonico → genera los entregables obligatorios en `docs/design/`
-3. **`backend-java-developer`** recibe los entregables de diseño → genera codigo fuente y entregables de desarrollo en `docs/development/`
-4. **`software-architect-lead`** (reviewer) revisa el codigo → aprueba o genera `REVIEW-CORRECTIONS.md` para re-desarrollo (max 3 ciclos)
+2. **`software-architect-lead`** recibe el PRD/SRS → evalua el estilo arquitectonico → genera los entregables obligatorios en `docs/design/` (el blueprint documenta la estructura bajo `services/`)
+3. **`backend-java-developer`** recibe los entregables de diseño → crea `services/` → genera cada microservicio uno a la vez bajo `services/<service-name>/` con Docker en `services/docker-compose.yml` → mantiene `docs/development/PROGRESS.md` como tracker → re-lee docs de diseño antes de cada servicio para no perder contexto → genera entregables en `docs/development/`
+4. **`software-architect-lead`** (reviewer) revisa el codigo → aprueba o genera `REVIEW-CORRECTIONS.md` → re-invoca al desarrollador en **modo correcciones** (cambios quirurgicos, no re-implementa desde cero, lee `PROGRESS.md`) (max 3 ciclos)
 
 ### Entregables obligatorios de diseño
 
@@ -138,10 +138,36 @@ Para usar el scaffold de generacion de proyectos:
 
 Si solicitas una tecnologia no soportada (MySQL, Kafka, Redis, SQS, etc.), el skill la configura manualmente en tu proyecto **y** actualiza el scaffold para soportarla en futuras generaciones.
 
-## Arquitectura generada
+## Estructura de proyecto generado
+
+Cuando se generan microservicios, toda la infraestructura y codigo fuente vive bajo `services/`:
 
 ```
-{service-name}/
+<project-root>/
+├── docs/
+│   ├── prd/                                 # PRD del proyecto
+│   ├── srs/                                 # SRS (IEEE 830)
+│   ├── design/                              # Entregables de diseño
+│   └── development/
+│       ├── PROGRESS.md                      # Tracker de progreso por microservicio
+│       ├── TEST-REPORT.md
+│       ├── SERVICE-GUIDE.md
+│       ├── CURL-EXAMPLES.md
+│       └── ...
+├── services/
+│   ├── docker-compose.yml                   # Infraestructura compartida (DB, messaging, mocks)
+│   ├── ms-orders/                           # Microservicio 1
+│   ├── ms-inventory/                        # Microservicio 2
+│   └── ...
+└── ...
+```
+
+## Arquitectura hexagonal por microservicio
+
+Cada microservicio generado bajo `services/` sigue esta estructura:
+
+```
+services/{service-name}/
 ├── pom.xml                              # Parent POM (Spring Boot 3.4.1, Java 21)
 ├── .env                                 # Variables de entorno (NO se commitea)
 ├── .env.example                         # Plantilla sin secretos (se commitea)

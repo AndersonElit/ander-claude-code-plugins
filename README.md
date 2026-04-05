@@ -30,7 +30,7 @@ Plugin con once skills y tres agentes autonomos para el ciclo completo de desarr
 
 - **requirements-analyst** - Agente autonomo para planificacion de proyectos, analisis de requisitos y generacion de PRD. Produce un PRD y luego invoca `/srs-document-builder` para generar el documento formal SRS (IEEE 830).
 - **software-architect-lead** - Arquitecto de Software & Tech Lead para diseño arquitectonico, decisiones tecnicas, diseño de soluciones, revision de codigo, seleccion de stack y documentacion tecnica. Evalua el estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante un scorecard de 5 criterios antes de generar los entregables obligatorios de diseño. Cuando el resultado es microservicios/EDA, invoca `/microservices-eda-architecture`.
-- **backend-java-developer** - Desarrollador Backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Brazo de ejecucion de la Fase 4 (Desarrollo) del flujo SDLC. Traduce la documentacion de diseño en codigo productivo, maneja desarrollo inicial, correcciones de bugs, nueva funcionalidad y cambios de requisitos. Incluye ciclo obligatorio de verificacion de compilacion (`mvn clean compile`) despues de cada microservicio — corrige errores iterativamente hasta compilar limpio. Los tests unitarios e integracion son obligatorios y deben seguir estrictamente la documentacion de testing de la fase de diseño (`docs/design/testing/`); ejecuta `mvn clean verify` en bucle hasta que todos los tests pasen.
+- **backend-java-developer** - Desarrollador Backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Brazo de ejecucion de la Fase 4 (Desarrollo) del flujo SDLC. Procesa **un microservicio a la vez** a traves del ciclo completo (scaffold → implementar → compilar → quality review → tests) antes de pasar al siguiente. Mantiene un tracker de progreso (`docs/development/PROGRESS.md`) para rastrear el estado de cada servicio y permitir reanudacion. **Re-lee la documentacion de diseño relevante antes de cada microservicio** para prevenir perdida de contexto. Genera todos los microservicios bajo `services/` con infraestructura compartida en `services/docker-compose.yml`. Incluye ciclo obligatorio de verificacion de compilacion (`mvn clean compile`) despues de cada microservicio. Tests unitarios e integracion obligatorios segun `docs/design/testing/`; ejecuta `mvn clean verify` en bucle hasta que todos los tests pasen. Cuando es re-invocado por correcciones de revision arquitectonica, aplica **cambios quirurgicos unicamente** — nunca re-scaffoldea o re-implementa microservicios ya completados.
 
 **Flujo de trabajo:**
 
@@ -45,13 +45,16 @@ Requisitos del cliente
         |                      ├── architecture/  (decision de estilo + microservicios/EDA)
         |                      ├── openapi/       (OpenAPI spec)
         |                      ├── events/        (esquemas de eventos)
-        |                      ├── scaffold/      (blueprint de estructura)
+        |                      ├── scaffold/      (blueprint bajo services/)
         |                      ├── database/      (ER + schema.sql)
         |                      ├── testing/       (lineamientos de testing)
         |                      └── c4/            (diagramas C4)
         |
         v
-  backend-java-developer  --> codigo fuente + docs/development/
+  backend-java-developer  --> services/<service-name>/  (un microservicio a la vez)
+        |                      services/docker-compose.yml
+        |                      docs/development/
+        |                      ├── PROGRESS.md    (tracker de progreso)
         |                      ├── TEST-REPORT
         |                      ├── SERVICE-GUIDE
         |                      ├── CURL-EXAMPLES
@@ -60,7 +63,8 @@ Requisitos del cliente
         v
   software-architect-lead  --> revision arquitectonica
   (reviewer)                   APROBADO → reporte final
-                               RECHAZADO → REVIEW-CORRECTIONS.md → re-desarrollo
+                               RECHAZADO → REVIEW-CORRECTIONS.md
+                               → re-desarrollo (correcciones quirurgicas, no desde cero)
 ```
 
 ## Instalacion
@@ -129,6 +133,41 @@ ander-claude-code-plugins/
         │   └── jbang/
         │       └── MavenHexagonalScaffold.java  # Generador JBang
         └── README.md
+```
+
+## Estructura generada en proyectos destino
+
+Cuando se ejecuta el flujo SDLC completo, el proyecto destino tiene esta estructura:
+
+```
+<proyecto-destino>/
+├── docs/
+│   ├── prd/PRD-<nombre>.md                  # Product Requirements Document
+│   ├── srs/SRS-<nombre>.md                  # Software Requirements Specification
+│   ├── design/                              # Entregables de diseño
+│   │   ├── architecture/                    # Decision de estilo + microservicios/EDA
+│   │   ├── c4/                              # Diagramas C4
+│   │   ├── openapi/                         # Especificacion OpenAPI
+│   │   ├── database/                        # Modelo ER + DDL
+│   │   ├── scaffold/                        # Blueprint de estructura (bajo services/)
+│   │   ├── testing/                         # Lineamientos de testing
+│   │   └── events/                          # Esquemas de eventos (si aplica)
+│   ├── development/                         # Entregables de desarrollo
+│   │   ├── PROGRESS.md                      # Tracker de progreso por microservicio
+│   │   ├── TEST-REPORT.md
+│   │   ├── SERVICE-GUIDE.md
+│   │   ├── CURL-EXAMPLES.md
+│   │   ├── LOCAL-TOOLS.md
+│   │   ├── DIAGRAMS.md
+│   │   ├── TECH-STACK.md
+│   │   └── openapi/
+│   └── sdlc-report/
+│       └── SDLC-EXECUTION-REPORT.md         # Reporte final del flujo SDLC
+└── services/                                # Codigo fuente e infraestructura
+    ├── docker-compose.yml                   # Infraestructura compartida (DB, messaging, mocks)
+    ├── ms-orders/                           # Microservicio (arquitectura hexagonal)
+    ├── ms-inventory/                        # Microservicio
+    └── ...
 ```
 
 ## Requisitos
