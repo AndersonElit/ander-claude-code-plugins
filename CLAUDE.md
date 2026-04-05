@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides ten skills and two agents:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides eleven skills and three agents:
 
 **Skills:**
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
@@ -19,10 +19,12 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 - **openapi-doc-builder** — Generates API documentation using OpenAPI 3.x/Swagger specification, including YAML specs, endpoint references, and integration guides
 - **planning** — Guides interactive requirement gathering for development tasks
 - **sdlc-workflow-supervisor** — Orchestrates the full SDLC workflow from raw client requirements to architectural design, enforcing quality gates and traceability between phases. Accepts client requirements as argument.
+- **microservices-eda-architecture** — Designs microservices architectures and Event-Driven Architecture (EDA) systems from business requirements. Covers domain decomposition, event identification, communication patterns (choreography/orchestration), data consistency patterns (Saga, CQRS, Event Sourcing, Outbox), and resilience design (Circuit Breaker, DLQ, idempotency, distributed tracing).
 
 **Agents:**
 - **requirements-analyst** — Autonomous agent for project planning, requirements analysis, and PRD generation. Produces a PRD and then invokes `/srs-document-builder` to generate the formal IEEE 830 SRS document
 - **software-architect-lead** — Elite Software Architect & Tech Lead agent for architectural design, technical decision-making, solution design, code review, RFC creation, stack selection, and technical documentation
+- **backend-java-developer** — Elite Backend Java Developer agent for implementing reactive Spring Boot microservices based on design documentation. Handles initial development from design specs, bug fixes, new functionality, and requirement changes. Execution arm of Stage 4 (Development) in the SDLC workflow. Enforces a mandatory compilation verification loop (`mvn clean compile`) after each microservice — fixes errors iteratively until the build is clean. Unit and integration tests are obligatory and must strictly follow the testing documentation from the design phase (`docs/design/testing/`); runs `mvn clean verify` in a loop until all tests pass.
 
 ## Architecture
 
@@ -106,8 +108,8 @@ Client Requirements
 │  ESTADO 2: Design Hand-off ─────────────────────────────────┐ │
 │  │  INPUT:  PRD + SRS paths + design roadmap                │ │
 │  │  Agent:  software-architect-lead                         │ │
-│  │  OUTPUT: docs/design/ (c4/, openapi/, database/,         │ │
-│  │          scaffold/, testing/, events/)                    │ │
+│  │  OUTPUT: docs/design/ (architecture/, c4/, openapi/,     │ │
+│  │          database/, scaffold/, testing/, events/)         │ │
 │  ├──────────────────────────────────────────────────────────┘ │
 │  │                                                            │
 │  ESTADO 3: Traceability Audit (RF-XXX ↔ design components)   │
@@ -140,7 +142,7 @@ Client Requirements
 **Document output locations:**
 - PRD → `docs/prd/PRD-<project-name>.md`
 - SRS → `docs/srs/SRS-<project-name>.md`
-- Design deliverables → `docs/design/` (openapi/, events/, scaffold/, database/, testing/, c4/)
+- Design deliverables → `docs/design/` (architecture/, openapi/, events/, scaffold/, database/, testing/, c4/)
 - Development deliverables → `docs/development/` (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, LOCAL-TOOLS, DIAGRAMS, TECH-STACK, openapi/)
 - Review corrections → `docs/development/REVIEW-CORRECTIONS.md` (when architectural review rejects)
 - SDLC Execution Report → `docs/sdlc-report/SDLC-EXECUTION-REPORT.md`

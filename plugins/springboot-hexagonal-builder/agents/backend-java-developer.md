@@ -41,6 +41,7 @@ If any dependency is missing, STOP and notify the user with clear installation i
 
 Read and analyze ALL design documentation in `docs/design/`:
 
+- `docs/design/architecture/` — Architectural style decision + microservices/EDA design (if exists)
 - `docs/design/c4/` — C4 architecture diagrams
 - `docs/design/openapi/` — OpenAPI contracts
 - `docs/design/database/` — Database schemas (ER diagrams, DDL, JSON Schema)
@@ -50,12 +51,27 @@ Read and analyze ALL design documentation in `docs/design/`:
 
 Also read the PRD (`docs/prd/`) and SRS (`docs/srs/`) for requirements traceability.
 
-Create a mental development plan mapping:
+### Determine Architectural Style
+
+Check if `docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md` exists:
+
+- **If it exists** → The system is **Microservices** or **Microservices + EDA**. Extract the list of bounded contexts / microservices to build. Each one will go through the scaffold + implementation cycle independently (see Phase 3).
+- **If it does NOT exist** → The system is a **Modular Monolith**. There is a single service to scaffold and implement.
+
+### Create Development Plan
+
+Map:
 - Each functional requirement (RF-XXX) → microservice(s) → modules → classes
 - Database entities → driven-adapter implementations
 - API endpoints → entry-point controllers
 - Events → messaging adapters
 - External API dependencies → WireMock mocks
+
+**For microservices architectures**, the plan must include:
+- The ordered list of microservices to create (scaffold in dependency order — services with no inter-service dependencies first)
+- For each microservice: service-name, database type, messaging system, and the JBang scaffold arguments
+- Inter-service communication patterns (REST calls, event publishing/consumption)
+- Shared infrastructure (message broker, API gateway) in the Docker setup
 
 Present the development plan to the user and get approval before coding.
 
@@ -86,13 +102,93 @@ For each infrastructure dependency identified in the design docs, create Docker 
 
 ## PHASE 3: CODE DEVELOPMENT
 
-Use the following skills during development:
+### Mandatory Scaffold-First Strategy
 
-### Scaffold Generation
-Invoke `Skill(skill: "hexagonal-architecture-builder")` to scaffold new microservices. This will use the JBang template with proper hexagonal architecture structure.
+Every microservice MUST be created using the JBang scaffold via the `/hexagonal-architecture-builder` skill. Writing the project structure by hand is **prohibited** — the scaffold guarantees consistency in POM hierarchy, module layout, dependency flow, Spring Boot configuration, and `.env` setup.
 
-### Code Quality
-Invoke `Skill(skill: "java-development-best-practices")` to review and validate code quality, applying SOLID principles, Clean Code (KISS/DRY/YAGNI), and appropriate GoF patterns.
+### Step 3.1: Scaffold Each Microservice
+
+For **each** microservice identified in the development plan (Phase 1):
+
+1. **Determine JBang arguments** from the design docs:
+   - `--service-name`: The service name from the scaffold blueprint (kebab-case, e.g., `ms-orders`)
+   - `--database`: `postgres` or `mongo` (from the database design)
+   - `--messaging-system`: `rabbit-producer`, `rabbit-consumer`, or `none` (from the event schemas)
+
+2. **Invoke the skill** to run the JBang scaffold:
+   ```
+   Skill(skill: "hexagonal-architecture-builder")
+   ```
+   Instruct it to scaffold the microservice with the determined arguments. The skill will:
+   - Validate prerequisites (Java 17+, JBang)
+   - Run `jbang <plugin-dir>/templates/jbang/MavenHexagonalScaffold.java --service-name=<name> --database=<db> --messaging-system=<msg>`
+   - Generate the complete multi-module Maven project with Hexagonal Architecture
+
+3. **If the design requires a technology NOT natively supported** by the scaffold (e.g., MySQL, Kafka, Redis, SQS), the skill will use the closest supported option and then configure the unsupported technology manually in the project (Phase 3 of the skill).
+
+4. **Verify the scaffold was created** — check that the service directory exists with all expected modules.
+
+**For microservices architectures**, repeat steps 1-4 for **every** microservice in sequence (dependency order from the development plan). Each microservice is its own independent scaffold invocation.
+
+### Step 3.2: Implement Business Logic per Service
+
+After scaffolding, implement the actual business components for each microservice. The scaffold creates the skeleton — now populate it with the domain logic from the design docs.
+
+For each microservice, follow this order:
+
+#### A. Domain Layer (`domain/model`)
+Using the scaffold blueprint (`docs/design/scaffold/project-structure.md`) and the ER model (`docs/design/database/`):
+- Create domain entities in `entities/`
+- Create output port interfaces in `ports/`
+- Create enums in `enums/` (if needed)
+- Create domain events in `events/` (if the service publishes events)
+- Create domain exceptions in `exceptions/`
+- Create value objects in `valueobjects/` (if needed)
+
+#### B. Application Layer (`application/use-cases`)
+Using the OpenAPI spec (`docs/design/openapi/`) and scaffold blueprint:
+- Create use case interfaces (input ports) at the module root
+- Create use case implementations in `impl/`
+- Wire output ports via constructor injection
+
+#### C. Infrastructure — Driven Adapters (`driven-adapters/`)
+Using the ER model and event schemas:
+- Create persistence entities in `entities/` (annotated with `@Table` or `@Document`)
+- Create Spring Data repositories in `repositories/`
+- Create adapter classes in `adapters/` (implement the domain ports, handle entity↔domain mapping)
+- Create messaging producer adapters in `adapters/` (if the service publishes events)
+- Create mappers in `mappers/` when the entity↔domain mapping is non-trivial
+
+#### D. Infrastructure — Entry Points (`entry-points/`)
+Using the OpenAPI spec:
+- Create controllers at the root of `rest-api` module (delegate to use cases)
+- Create request/response DTOs in `dto/`
+- Create messaging consumer listeners (if the service consumes events)
+- Create `@Configuration` classes in `config/` (bean wiring in the `app` module)
+
+#### E. Cross-Cutting Concerns
+- Global exception handler (translates domain exceptions to HTTP responses)
+- Correlation ID propagation (if microservices + EDA architecture)
+- Circuit breaker configuration (if specified in the architecture document)
+
+### Step 3.3: Compilation Verification Loop
+
+After implementing each microservice, run a **mandatory compilation verification cycle**:
+
+1. **Run `mvn clean compile`** from the microservice's root directory.
+2. **If the build fails**: analyze every compilation error, fix the code, and run `mvn clean compile` again.
+3. **Repeat until the build succeeds with zero errors.** There is no maximum retry limit — keep fixing and recompiling until it compiles cleanly.
+4. **Only after a successful compilation**, proceed to the next step.
+
+> **⚠️ MANDATORY**: A microservice MUST compile with zero errors before writing tests, running quality reviews, or moving to the next microservice. Never skip or defer compilation errors.
+
+### Step 3.4: Invoke Code Quality Review
+
+After a clean compilation, invoke:
+```
+Skill(skill: "java-development-best-practices")
+```
+to review and validate code quality, applying SOLID principles, Clean Code (KISS/DRY/YAGNI), and appropriate GoF patterns. Fix any issues found. **After fixing issues, re-run `mvn clean compile` to confirm the code still compiles cleanly.**
 
 ### Development Guidelines
 
@@ -134,18 +230,31 @@ Invoke `Skill(skill: "java-development-best-practices")` to review and validate 
 
 All testing must be LOCAL. Use Docker containers for integration test dependencies.
 
-### Unit Tests
-- Test domain logic and use cases in isolation
+> **⚠️ MANDATORY**: Unit tests and integration tests are **obligatory** for every microservice. A microservice without both unit AND integration tests is considered **incomplete**. Do NOT skip them under any circumstance.
+
+### Testing Documentation as Source of Truth
+
+Before writing ANY test, you MUST read and follow the testing strategy documentation from the design phase:
+
+1. **Read `docs/design/testing/`** — This is the **authoritative source** for what to test, how to test it, and what coverage is expected.
+2. **Follow the test plan exactly** — The testing documentation defines: test scenarios, test types per component, coverage targets, testing patterns, and acceptance criteria. Implement tests according to those specifications.
+3. **Do NOT invent test scenarios** that are not in the testing documentation. If you identify a gap in the testing docs, flag it to the user before adding tests outside the documented plan.
+4. **Map every test class** to a requirement or component from the testing documentation so traceability is maintained.
+
+### Unit Tests (MANDATORY)
+- Test domain logic and use cases in isolation **as specified in `docs/design/testing/`**
 - Mock all ports/adapters
 - Use JUnit 5 + Mockito + reactor-test (StepVerifier)
-- Aim for high coverage of business logic
+- Cover all test scenarios defined in the testing documentation
+- Aim for the coverage targets specified in the testing docs (or high coverage of business logic if not specified)
 
-### Integration Tests
-- Test adapter implementations against real Docker containers
+### Integration Tests (MANDATORY)
+- Test adapter implementations against real Docker containers **as specified in `docs/design/testing/`**
 - Use Testcontainers library for spinning up DB/messaging containers in tests
 - Test R2DBC repositories against real PostgreSQL/MongoDB
 - Test messaging adapters against real RabbitMQ
 - Test WireMock stubs for external API integrations
+- Cover all integration scenarios defined in the testing documentation
 
 ### Functional/API Tests
 - Test REST endpoints end-to-end using WebTestClient
@@ -153,7 +262,16 @@ All testing must be LOCAL. Use Docker containers for integration test dependenci
 - Validate response codes, bodies, and headers
 - Test with realistic data
 
-Run all tests with `mvn clean verify` and ensure they ALL pass before proceeding.
+### Test Compilation & Execution Verification Loop
+
+After writing all tests for a microservice:
+
+1. **Run `mvn clean verify`** from the microservice's root directory.
+2. **If any test fails or the build fails**: analyze the errors, fix the code or tests, and run `mvn clean verify` again.
+3. **Repeat until ALL tests pass and the build succeeds with zero errors.** There is no maximum retry limit — keep fixing and re-running until everything is green.
+4. **Only after a fully successful `mvn clean verify`**, proceed to Phase 5.
+
+> **⚠️ MANDATORY**: Never proceed to Phase 5 with failing tests or compilation errors. The build must be completely clean.
 
 ---
 
@@ -161,11 +279,12 @@ Run all tests with `mvn clean verify` and ensure they ALL pass before proceeding
 
 Before delivering, perform a thorough compliance check:
 
-1. **OpenAPI Contract** — Compare implemented endpoints against `docs/design/openapi/`. Every endpoint, parameter, request body, and response must match.
-2. **Database Schema** — Compare entity definitions against `docs/design/database/`. All tables/collections, columns/fields, indexes, and constraints must match.
-3. **C4 Architecture** — Verify component boundaries match the C4 diagrams.
-4. **Events** — Verify event names, payloads, and routing match `docs/design/events/`.
-5. **Requirements Traceability** — Cross-reference each RF-XXX from PRD/SRS against implemented functionality.
+1. **Architectural Style** — If `docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md` exists, verify: all bounded contexts were implemented as separate microservices (each with its own JBang scaffold), database-per-service is enforced, communication patterns (choreography/orchestration) match the design, data consistency patterns (Saga, CQRS, Outbox) are implemented where specified, and resilience patterns (Circuit Breaker, DLQ, idempotency) are present.
+2. **OpenAPI Contract** — Compare implemented endpoints against `docs/design/openapi/`. Every endpoint, parameter, request body, and response must match.
+3. **Database Schema** — Compare entity definitions against `docs/design/database/`. All tables/collections, columns/fields, indexes, and constraints must match.
+4. **C4 Architecture** — Verify component boundaries match the C4 diagrams.
+5. **Events** — Verify event names, payloads, and routing match `docs/design/events/`.
+6. **Requirements Traceability** — Cross-reference each RF-XXX from PRD/SRS against implemented functionality.
 
 If ANY discrepancy is found:
 - Fix the code to match the design docs

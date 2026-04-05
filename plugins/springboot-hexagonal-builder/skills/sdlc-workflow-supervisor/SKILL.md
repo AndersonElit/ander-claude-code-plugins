@@ -52,7 +52,8 @@ Cada transicion de estado tiene un contrato formal de INPUT/OUTPUT. El superviso
 │   ESTADO 2          │  INPUT:  PRD (docs/prd/PRD-<project>.md)
 │   software-         │          SRS (docs/srs/SRS-<project>.md)
 │   architect-lead    │          Hoja de Ruta de Diseno (generada por supervisor)
-│                     │  OUTPUT: docs/design/c4/c4-diagrams.md
+│                     │  OUTPUT: docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md (si aplica)
+│                     │          docs/design/c4/c4-diagrams.md
 │                     │          docs/design/openapi/openapi-spec.yaml
 │                     │          docs/design/database/er-model.md + schema.sql
 │                     │          docs/design/scaffold/project-structure.md
@@ -69,9 +70,10 @@ Cada transicion de estado tiene un contrato formal de INPUT/OUTPUT. El superviso
          │ Diseno validado
          ▼
 ┌─────────────────────┐
-│   ESTADO 4          │  INPUT:  docs/design/ (todos los artefactos)
-│   backend-java-     │          docs/prd/PRD-<project>.md
-│   developer         │          docs/srs/SRS-<project>.md
+│   ESTADO 4          │  INPUT:  docs/design/ (architecture, c4, openapi, database,
+│   backend-java-     │                        scaffold, testing, events)
+│   developer         │          docs/prd/PRD-<project>.md
+│                     │          docs/srs/SRS-<project>.md
 │                     │  OUTPUT: Codigo fuente (microservicios implementados)
 │                     │          docs/development/ (todos los entregables)
 └────────┬────────────┘
@@ -133,42 +135,46 @@ Genere una **Hoja de Ruta de Diseno** sintetizada y pase el testigo:
   1. **Ruta al PRD:** "Lee el PRD en docs/prd/PRD-<project-name>.md para los requisitos del producto, actores, modelo de dominio y priorizacion MoSCoW."
   2. **Ruta al SRS:** "Lee el SRS en docs/srs/SRS-<project-name>.md para los requisitos funcionales (RF-XXX), no funcionales, casos de uso detallados y reglas de negocio."
   3. **Hoja de Ruta:** Resumen sintetizado con prioridades (Escalabilidad, Arquitectura Hexagonal, Reactividad) y decisiones clave extraidas del Quality Gate.
-- **Accion:** Invocar `Agent(software-architect-lead)` con el prompt estructurado que incluya las rutas a los documentos y la hoja de ruta.
+  4. **Evaluacion de Estilo Arquitectonico:** "Antes de generar los entregables, evalua el estilo arquitectonico apropiado (Monolito Modular vs Microservicios vs Microservicios + EDA) usando tu scorecard de 5 criterios (Complejidad del dominio, Despliegue y Resiliencia, Escalabilidad independiente, Estructura de equipos, Necesidades event-driven). Si el resultado es Microservicios o Microservicios + EDA, invoca `/microservices-eda-architecture` para disenar la descomposicion de dominios, eventos, patrones de comunicacion, consistencia de datos y resiliencia."
+- **Accion:** Invocar `Agent(software-architect-lead)` con el prompt estructurado que incluya las rutas a los documentos, la hoja de ruta y la instruccion de evaluacion de estilo arquitectonico.
 - **Output esperado del agente:**
+  - `docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md` — Decision de estilo arquitectonico + diseno de microservicios/EDA (si el scorecard resulta en Microservicios o Microservicios + EDA; no aplica para Monolito Modular)
   - `docs/design/c4/c4-diagrams.md` — Diagramas C4 (Context, Container, Component)
   - `docs/design/openapi/openapi-spec.yaml` — Especificacion OpenAPI 3.x
   - `docs/design/database/er-model.md` + `schema.sql` — Modelo ER y DDL
   - `docs/design/scaffold/project-structure.md` — Blueprint de estructura hexagonal
   - `docs/design/testing/testing-guidelines.md` — Lineamientos de testing
   - `docs/design/events/event-schemas.md` — Esquemas de eventos (si aplica messaging)
-- **Condicion de Salida:** Verificar existencia fisica de todos los archivos mandatorios con `Read`. Si falta alguno, re-invocar al agente indicando los entregables faltantes.
+- **Condicion de Salida:** Verificar existencia fisica de todos los archivos mandatorios con `Read`. Si el estilo arquitectonico es Microservicios o Microservicios + EDA, verificar tambien la existencia de `docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md`. Si falta alguno, re-invocar al agente indicando los entregables faltantes.
 
 ### ESTADO 3: Auditoria de Consistencia (Traceability Audit)
 
-- **Input:** Leer los requisitos funcionales (RF-XXX) del SRS + todos los artefactos de `docs/design/`.
+- **Input:** Leer los requisitos funcionales (RF-XXX) del SRS + todos los artefactos de `docs/design/` (incluyendo `architecture/MICROSERVICES-EDA-ARCHITECTURE.md` si existe).
 
 Una vez el Arquitecto entregue, verifique:
 
-- **Mapeo:** Todo RF-XXX esta cubierto por al menos un componente de diseno (endpoint en OpenAPI, entidad en ER, clase en scaffold)?
+- **Mapeo:** Todo RF-XXX esta cubierto por al menos un componente de diseno (endpoint en OpenAPI, entidad en ER, clase en scaffold, bounded context en documento de arquitectura)?
+- **Consistencia arquitectonica** (si existe documento de microservicios/EDA): Los bounded contexts del documento de arquitectura coinciden con los contenedores del C4? Los eventos identificados coinciden con los esquemas en `events/event-schemas.md`? Las estrategias de consistencia de datos (Saga, CQRS, Outbox) estan reflejadas en el scaffold?
 - **Huerfanos:** Identifique decisiones de diseno no justificadas por requisitos.
 - **Output:** Tabla de trazabilidad RF ↔ componentes + lista de huerfanos (si los hay).
 
 ### ESTADO 4: Desarrollo Backend (Development)
 
 - **Input:** Todos los artefactos de diseno validados en estados previos:
-  - `docs/design/` (C4, OpenAPI, database, scaffold, testing, events)
+  - `docs/design/` (architecture, C4, OpenAPI, database, scaffold, testing, events)
   - `docs/prd/PRD-<project-name>.md`
   - `docs/srs/SRS-<project-name>.md`
 - **Accion:** Invocar `Agent(backend-java-developer)`.
 - **Instruccion al Agente:** "Implementa los microservicios basandote en la documentacion de diseno. Lee los siguientes documentos:
   1. PRD en docs/prd/PRD-<project-name>.md
   2. SRS en docs/srs/SRS-<project-name>.md
-  3. Diagramas C4 en docs/design/c4/c4-diagrams.md
-  4. Especificacion OpenAPI en docs/design/openapi/openapi-spec.yaml
-  5. Modelo de base de datos en docs/design/database/
-  6. Blueprint de estructura en docs/design/scaffold/project-structure.md
-  7. Lineamientos de testing en docs/design/testing/testing-guidelines.md
-  8. Esquemas de eventos en docs/design/events/event-schemas.md (si existe)
+  3. Arquitectura de microservicios/EDA en docs/design/architecture/MICROSERVICES-EDA-ARCHITECTURE.md (si existe — contiene la decision de estilo arquitectonico, bounded contexts, patrones de comunicacion, estrategias de consistencia de datos y resiliencia)
+  4. Diagramas C4 en docs/design/c4/c4-diagrams.md
+  5. Especificacion OpenAPI en docs/design/openapi/openapi-spec.yaml
+  6. Modelo de base de datos en docs/design/database/
+  7. Blueprint de estructura en docs/design/scaffold/project-structure.md
+  8. Lineamientos de testing en docs/design/testing/testing-guidelines.md
+  9. Esquemas de eventos en docs/design/events/event-schemas.md (si existe)
   
   Ejecuta todas tus fases (0-6) incluyendo la generacion obligatoria de TODOS los entregables en docs/development/."
 - **Output esperado:**
@@ -188,10 +194,11 @@ Este estado implementa un **ciclo de revision** donde `software-architect-lead` 
 
 - **Input para el agente:** Al invocar `Agent(software-architect-lead)`, el prompt DEBE incluir:
   1. **Contexto:** "Actua como revisor arquitectonico del codigo generado en la fase de desarrollo (ESTADO 4 del SDLC)."
-  2. **Ruta al diseno original:** "Compara la implementacion contra los artefactos de diseno en docs/design/ (C4, OpenAPI, database, scaffold, testing, events)."
+  2. **Ruta al diseno original:** "Compara la implementacion contra los artefactos de diseno en docs/design/ (architecture, C4, OpenAPI, database, scaffold, testing, events)."
   3. **Ruta a los entregables de desarrollo:** "Revisa los entregables en docs/development/ y el codigo fuente generado."
   4. **Criterios de revision:**
      - Adherencia a la arquitectura hexagonal definida en el scaffold
+     - Adherencia al estilo arquitectonico decidido (Monolito Modular / Microservicios / Microservicios + EDA) segun docs/design/architecture/ (si existe): bounded contexts correctos, database-per-service, patrones de comunicacion implementados, estrategias de consistencia de datos (Saga, CQRS, Outbox) aplicadas, patrones de resiliencia (Circuit Breaker, DLQ, idempotencia) presentes
      - Cumplimiento del contrato OpenAPI (endpoints, DTOs, codigos de respuesta)
      - Modelo de datos implementado coincide con el ER/schema de diseno
      - Cobertura de requisitos funcionales (RF-XXX) en el codigo

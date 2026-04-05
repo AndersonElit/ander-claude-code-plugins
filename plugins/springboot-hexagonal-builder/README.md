@@ -15,20 +15,25 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 | `nosql-schema-builder` | Diseña esquemas NoSQL (MongoDB, DynamoDB, Cassandra): modelado de documentos, validaciones JSON Schema, indices, sharding |
 | `openapi-doc-builder` | Genera documentacion de APIs con OpenAPI 3.x/Swagger |
 | `planning` | Guia la recopilacion interactiva de requisitos para tareas de desarrollo |
+| `sdlc-workflow-supervisor` | Orquesta el flujo SDLC completo desde requisitos del cliente hasta desarrollo, con quality gates y trazabilidad entre fases |
+| `microservices-eda-architecture` | Diseña arquitecturas de microservicios y EDA: descomposicion de dominios, eventos, patrones de comunicacion (coreografia/orquestacion), consistencia de datos (Saga, CQRS, Event Sourcing, Outbox) y resiliencia (Circuit Breaker, DLQ, idempotencia) |
 
 ## Agentes autonomos
 
 | Agente | Descripcion |
 |--------|-------------|
 | `requirements-analyst` | Planificacion de proyectos, analisis de requisitos y generacion de PRD + SRS (IEEE 830) |
-| `software-architect-lead` | Diseño arquitectonico, decisiones tecnicas, generacion de entregables obligatorios de diseño |
+| `software-architect-lead` | Evalua estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante scorecard, genera entregables obligatorios de diseño. Invoca `/microservices-eda-architecture` cuando aplica |
+| `backend-java-developer` | Desarrollador backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Fase 4 (Desarrollo) del SDLC. Ciclo obligatorio de compilacion (`mvn clean compile`) y verificacion de tests (`mvn clean verify`) hasta build limpio. Tests unitarios e integracion obligatorios segun `docs/design/testing/` |
 
 ### Flujo de trabajo
 
-Los dos agentes se usan de forma secuencial:
+Los tres agentes se usan de forma secuencial, orquestados por `sdlc-workflow-supervisor`:
 
 1. **`requirements-analyst`** recibe los requisitos del cliente → genera PRD (`docs/prd/`) y SRS (`docs/srs/`)
-2. **`software-architect-lead`** recibe el PRD/SRS → genera los entregables obligatorios en `docs/design/`
+2. **`software-architect-lead`** recibe el PRD/SRS → evalua el estilo arquitectonico → genera los entregables obligatorios en `docs/design/`
+3. **`backend-java-developer`** recibe los entregables de diseño → genera codigo fuente y entregables de desarrollo en `docs/development/`
+4. **`software-architect-lead`** (reviewer) revisa el codigo → aprueba o genera `REVIEW-CORRECTIONS.md` para re-desarrollo (max 3 ciclos)
 
 ### Entregables obligatorios de diseño
 
@@ -36,6 +41,7 @@ El agente `software-architect-lead` genera estos entregables en `docs/design/`:
 
 | Entregable | Archivo | Skill utilizado |
 |------------|---------|-----------------|
+| Decision de estilo arquitectonico + diseño microservicios/EDA (si aplica) | `architecture/MICROSERVICES-EDA-ARCHITECTURE.md` | `/microservices-eda-architecture` |
 | Especificacion OpenAPI/Swagger | `openapi/openapi-spec.yaml` | `/openapi-doc-builder` |
 | Esquemas de eventos (si aplica) | `events/event-schemas.md` | — |
 | Blueprint de estructura hexagonal | `scaffold/project-structure.md` | — (solo documentacion) |
