@@ -93,8 +93,12 @@ All deliverables are saved under `docs/design/` in the project root:
 docs/design/
 ├── architecture/
 │   └── MICROSERVICES-EDA-ARCHITECTURE.md → Architectural style decision + microservices/EDA design (if applicable)
+├── microservices/                        → One self-contained spec per microservice (if microservices architecture)
+│   ├── ms-orders.md
+│   ├── ms-inventory.md
+│   └── ...
 ├── openapi/
-│   └── openapi-spec.yaml              → OpenAPI 3.x specification
+│   └── openapi-spec.yaml              → OpenAPI 3.x specification (full system)
 ├── events/
 │   └── event-schemas.md               → Event/message schemas (if messaging applies)
 ├── scaffold/
@@ -108,7 +112,7 @@ docs/design/
     └── c4-diagrams.md                 → C4 Context, Container, and Component diagrams
 ```
 
-> **Naming convention**: If the project contains multiple microservices, create subdirectories per service (e.g., `docs/design/openapi/<service-name>/openapi-spec.yaml`).
+> **Naming convention**: If the project contains multiple microservices, create subdirectories per service for shared deliverables (e.g., `docs/design/openapi/<service-name>/openapi-spec.yaml`). Additionally, each microservice gets its own self-contained spec in `docs/design/microservices/`.
 
 ---
 
@@ -172,15 +176,6 @@ docs/design/
 | Build | Maven | 3.9+ | Dependency management |
 
 **IMPORTANT**: This deliverable is **documentation only**. Do NOT execute `/hexagonal-architecture-builder` or generate actual code. Only describe and illustrate the structure that will be generated in the development phase. Follow the package conventions from the Hexagonal Architecture Structure Reference section below.
-
-**Directory convention**: All microservices are created under a `services/` directory at the project root. The `docker-compose.yml` for shared infrastructure also lives inside `services/`. Document the structure as:
-```
-services/
-├── docker-compose.yml
-├── <service-name-1>/
-├── <service-name-2>/
-└── ...
-```
 
 **Quality criteria**: A developer (or the development agent) must know exactly which classes to create, in which packages, and with what responsibilities — without any ambiguity.
 
@@ -292,6 +287,90 @@ services/
 
 ---
 
+### Deliverable 7: Per-Microservice Specifications (Especificaciones por Microservicio)
+
+**Directory**: `docs/design/microservices/`
+**Condition**: **Mandatory if the architecture is Microservices or Microservices + EDA**. Skip for Modular Monolith.
+
+Generate **one `.md` file per microservice** (e.g., `ms-orders.md`, `ms-inventory.md`). Each file must be **completely self-contained** — a developer (or the `backend-java-developer` agent) must be able to build the service **solely from this file** without needing to read any other design document.
+
+**Required sections in each microservice spec file**:
+
+#### 1. Service Overview
+- Service name (kebab-case, e.g., `ms-orders`)
+- Bounded context and business responsibility (1-2 paragraphs)
+- Database type: `postgres` or `mongo`
+- Messaging system: `rabbit-producer`, `rabbit-consumer`, or `none`
+
+#### 2. Technology Stack
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| Runtime | Java | 21 | Language |
+| Framework | Spring Boot | 3.4.x | Reactive microservice |
+| ... | ... | ... | ... |
+
+#### 3. Domain Entities
+For each entity:
+- Entity name and description
+- All fields with types, constraints, and descriptions
+- Relationships with other entities within this service
+- Enums used by this entity
+- Value objects (if any)
+- Domain events emitted by this entity (if any)
+- Domain exceptions
+
+#### 4. Database Schema
+- ER diagram in Mermaid (`erDiagram`) for this service's entities only
+- Data dictionary table per entity (column, type, nullable, default, constraint, description)
+- DDL statements (`CREATE TABLE` / `CREATE INDEX`) for this service only
+- For NoSQL: collection structure, JSON Schema, and index definitions
+
+#### 5. API Endpoints (OpenAPI)
+- Complete OpenAPI 3.x YAML block for this service's endpoints only
+- All HTTP methods, paths, operation descriptions
+- Request bodies with full JSON Schema (all fields, types, validations, required)
+- Response bodies for every HTTP status code (200, 201, 400, 404, 409, 500, etc.)
+- Reusable schemas for DTOs and error responses
+- Pagination, filtering, and sorting parameters where relevant
+
+#### 6. Events / Messaging (if applicable)
+- Events this service **publishes**: event name, exchange, routing key, full JSON Schema payload, example JSON
+- Events this service **consumes**: event name, queue, binding, full JSON Schema payload, expected behavior on receipt
+- DLQ strategy and retry policy for this service
+
+#### 7. Inter-Service Dependencies
+- External APIs this service calls (other microservices or third-party)
+- For each dependency: HTTP method, URL pattern, request/response schemas, expected behavior, timeout/retry strategy
+- These will be mocked with WireMock during development
+
+#### 8. Business Rules
+- Validation rules per entity/endpoint
+- Domain constraints and invariants
+- Error scenarios with expected HTTP status codes and error response bodies
+- Authorization/permission rules (if applicable)
+
+#### 9. Component Diagram
+- Mermaid C4 Component diagram for this service specifically
+- Show all internal components: controllers, use cases, domain services, adapters, repositories
+- Hexagonal architecture layers clearly delineated
+
+#### 10. Scaffold Blueprint
+- Complete folder/package tree for this service following Hexagonal Architecture conventions
+- For each module (`domain/model`, `application/use-cases`, `driven-adapters/*`, `entry-points/*`, `app`):
+  - List of classes/interfaces to create with fully qualified package name
+  - Class responsibility (one line)
+  - Key dependencies and which port/adapter it implements
+
+#### 11. Testing Strategy
+- Unit test scenarios specific to this service's business logic
+- Integration test scenarios for this service's adapters
+- Functional/API test scenarios for this service's endpoints
+- Test data setup requirements
+
+**Quality criteria**: The `backend-java-developer` agent must be able to receive this single file and produce the complete microservice — scaffold it, implement all layers, write all tests — without asking a single clarifying question. If any section requires looking at another document, the spec is incomplete.
+
+---
+
 ## Deliverable Generation Workflow
 
 When designing a solution, follow this strict order:
@@ -305,7 +384,8 @@ When designing a solution, follow this strict order:
 7. **Define Event Schemas** (Deliverable 2) — If messaging is involved (always for EDA, optional for pure microservices), define all events and message schemas. For microservices + EDA, the event catalog from step 3 is the source of truth.
 8. **Document Project Structure** (Deliverable 3) — Blueprint the scaffold with all classes, packages, and responsibilities. For microservices, document each service's structure separately.
 9. **Define Testing Guidelines** (Deliverable 5) — Define unit and integration test strategy per layer. Use `/java-testing-architect`. For microservices + EDA, include contract testing (Pact/Spring Cloud Contract) and messaging integration tests.
-10. **Self-Validate** — Run the verification checklist. Ensure all deliverables are consistent with each other (e.g., API models match DB entities, events reference correct domain objects, scaffold lists all classes needed by the API and events, testing guidelines reference the correct layers from the scaffold). For microservices, also verify that the architecture document from `/microservices-eda-architecture` is consistent with all deliverables.
+10. **Generate Per-Microservice Specs** (Deliverable 7) — **Only for Microservices / Microservices + EDA**. For each microservice identified, compile all its relevant information from Deliverables 1-6 into a single self-contained spec file in `docs/design/microservices/<service-name>.md`. Each file must contain everything needed to build that service independently (see Deliverable 7 for required sections). This is the **primary handoff artifact** to the `backend-java-developer` agent.
+11. **Self-Validate** — Run the verification checklist. Ensure all deliverables are consistent with each other (e.g., API models match DB entities, events reference correct domain objects, scaffold lists all classes needed by the API and events, testing guidelines reference the correct layers from the scaffold). For microservices, also verify that the architecture document from `/microservices-eda-architecture` is consistent with all deliverables, and that each per-microservice spec in `docs/design/microservices/` is complete and self-contained.
 
 ---
 
@@ -393,6 +473,16 @@ Before delivering the design, verify **every item**. Do not hand off to developm
 - [ ] Resilience patterns (Circuit Breaker, DLQ, idempotency) are documented per service interaction
 - [ ] Each microservice has its own database (database-per-service enforced)
 - [ ] Communication patterns (choreography/orchestration) match the event flow diagrams
+
+### Per-Microservice Specs Completeness (if Microservices / Microservices + EDA)
+- [ ] `docs/design/microservices/` directory exists with one `.md` file per microservice
+- [ ] Each spec file contains ALL 11 required sections (overview, tech stack, entities, DB schema, API endpoints, events, dependencies, business rules, component diagram, scaffold blueprint, testing strategy)
+- [ ] Each spec is **self-contained** — no section says "see other document" or references external files for essential information
+- [ ] API endpoints in each spec match the corresponding sections in the full OpenAPI spec (Deliverable 1)
+- [ ] DB schema in each spec matches the corresponding tables/collections in the ER model (Deliverable 4)
+- [ ] Events in each spec match the corresponding entries in the event schemas (Deliverable 2)
+- [ ] Scaffold blueprint in each spec matches the corresponding service in the project structure (Deliverable 3)
+- [ ] Each spec includes enough detail for `backend-java-developer` to build the service without clarifying questions
 
 ### Architectural Quality
 - [ ] The architectural style decision (monolith vs microservices vs microservices+EDA) is justified with the scorecard
