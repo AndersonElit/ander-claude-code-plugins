@@ -22,16 +22,18 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 | Agente | Descripcion |
 |--------|-------------|
 | `requirements-analyst` | Planificacion de proyectos, analisis de requisitos y generacion de PRD + SRS (IEEE 830) |
-| `software-architect-lead` | Evalua estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante scorecard, genera entregables obligatorios de diseño. Provisiona infraestructura via Docker Compose con init scripts que crean BD y tablas. Genera un spec autocontenido por cada servicio en `docs/design/microservices/` con todo lo necesario para construirlo de forma independiente (incluye conexion a infraestructura). Invoca `/microservices-eda-architecture` cuando aplica |
+| `software-architect-lead` | Evalua estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante scorecard, genera entregables de diseño (diagramas C4, modelo ER, OpenAPI, esquemas de eventos, estructura de proyecto, lineamientos de testing). Invoca `/microservices-eda-architecture` cuando aplica |
+| `tech-lead` | Genera infraestructura Docker Compose (`infrastructure/docker-compose.yml`) con init scripts que crean BD y tablas automaticamente. Genera un spec autocontenido por cada microservicio en `docs/design/microservices/` con todo lo necesario para construirlo de forma independiente (entidades, esquema BD, endpoints API, eventos, reglas de negocio, diagrama de componentes, blueprint, conexion a infraestructura, estrategia de testing) |
 | `backend-java-developer` | Desarrollador backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Recibe las especificaciones del servicio a construir (nombre, BD, messaging, entidades, endpoints, eventos, reglas de negocio). Scaffold via JBang, implementacion de todas las capas, genera Dockerfile del servicio, ciclo obligatorio de compilacion (`mvn clean compile`) y tests (`mvn clean verify`). Genera entregables de desarrollo (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, OpenAPI spec) |
 
 ### Flujo de trabajo
 
-Los tres agentes pueden usarse de forma independiente o secuencial:
+Los cuatro agentes pueden usarse de forma independiente o secuencial:
 
 1. **`requirements-analyst`** recibe los requisitos del cliente → genera PRD (`docs/prd/`) y SRS (`docs/srs/`)
-2. **`software-architect-lead`** recibe el PRD/SRS → evalua el estilo arquitectonico → genera los entregables de diseño en `docs/design/`. Si es microservicios, genera ademas un spec autocontenido por servicio en `docs/design/microservices/<service-name>.md`
-3. **`backend-java-developer`** recibe las especificaciones del servicio a construir ��� scaffold → implementa todas las capas → genera Dockerfile → compila → quality review → tests → genera entregables en `docs/development/`
+2. **`software-architect-lead`** recibe el PRD/SRS → evalua el estilo arquitectonico → genera los entregables de diseño en `docs/design/` (C4, ER model, OpenAPI, eventos, scaffold, testing)
+3. **`tech-lead`** recibe las decisiones arquitectonicas → genera `infrastructure/docker-compose.yml` con init scripts → genera spec autocontenido por servicio en `docs/design/microservices/<service-name>.md`
+4. **`backend-java-developer`** recibe las especificaciones del servicio a construir → scaffold → implementa todas las capas → genera Dockerfile → compila → quality review → tests → genera entregables en `docs/development/`
 
 ## Instalacion
 

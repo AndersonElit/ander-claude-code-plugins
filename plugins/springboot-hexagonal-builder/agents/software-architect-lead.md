@@ -93,10 +93,6 @@ All deliverables are saved under `docs/design/` in the project root:
 docs/design/
 ├── architecture/
 │   └── MICROSERVICES-EDA-ARCHITECTURE.md → Architectural style decision + microservices/EDA design (if applicable)
-├── microservices/                        → One self-contained spec per microservice (if microservices architecture)
-│   ├── ms-orders.md
-│   ├── ms-inventory.md
-│   └── ...
 ├── openapi/
 │   └── openapi-spec.yaml              → OpenAPI 3.x specification (full system)
 ├── events/
@@ -111,19 +107,9 @@ docs/design/
 └── c4/
     └── c4-diagrams.md                 → C4 Context, Container, and Component diagrams
 
-infrastructure/                           → Docker infrastructure (created and started by this agent)
-├── docker-compose.yml                    → All infrastructure containers (DBs, messaging, mocks)
-├── init-scripts/                         → DB initialization scripts (auto-executed on container start)
-│   ├── postgres/
-│   │   └── 01-init.sql                   → DDL for PostgreSQL databases/tables
-│   └── mongo/
-│       └── 01-init.js                    → MongoDB collections/indexes initialization
-└── wiremock/                             → WireMock stub mappings for external API mocks
-    ├── mappings/
-    └── __files/
 ```
 
-> **Naming convention**: If the project contains multiple microservices, create subdirectories per service for shared deliverables (e.g., `docs/design/openapi/<service-name>/openapi-spec.yaml`). Additionally, each microservice gets its own self-contained spec in `docs/design/microservices/`.
+> **Naming convention**: If the project contains multiple microservices, create subdirectories per service for shared deliverables (e.g., `docs/design/openapi/<service-name>/openapi-spec.yaml`).
 
 ---
 
@@ -298,190 +284,6 @@ infrastructure/                           → Docker infrastructure (created and
 
 ---
 
-### Deliverable 7: Infrastructure Setup (Infraestructura Docker)
-
-**Directory**: `infrastructure/`
-**Required**: YES — this agent must **create the files AND start the containers**. The development agent expects infrastructure to be running when it begins work.
-
-This deliverable provisions all shared infrastructure via Docker Compose so that every microservice can connect to real databases, message brokers, and API mocks from day one.
-
-#### Step 1: Create `infrastructure/docker-compose.yml`
-
-Include containers for ALL infrastructure dependencies identified during design:
-
-**Databases** — one container per database engine (shared by microservices using the same engine):
-- **PostgreSQL**: Container with health check, volume mount, and an `init-scripts/postgres/` volume bind that auto-executes `.sql` files on first start. Create a separate database per microservice using `CREATE DATABASE` in the init script (database-per-service pattern).
-- **MongoDB**: Container with health check and an `init-scripts/mongo/` volume bind that auto-executes `.js` files on first start. Create a separate database per microservice in the init script.
-
-**Messaging**:
-- **RabbitMQ**: Container with management plugin enabled (`rabbitmq:3-management`), default credentials, health check. Pre-create exchanges, queues, and bindings if defined in the event schemas.
-
-**External API Mocks**:
-- **WireMock**: Container(s) for every external API dependency. Mount `wiremock/mappings/` and `wiremock/__files/` directories for stub definitions.
-
-#### Step 2: Create initialization scripts
-
-**For PostgreSQL** (`infrastructure/init-scripts/postgres/01-init.sql`):
-- `CREATE DATABASE` for each microservice that uses PostgreSQL
-- Full DDL from Deliverable 4: `CREATE TABLE`, `CREATE INDEX`, constraints, enums — for ALL microservices using PostgreSQL
-- Separate each microservice's DDL with clear comments (`-- ========== ms-orders ==========`)
-- Use `\connect <db_name>` to switch between databases in the script
-- The script must be **idempotent** (use `IF NOT EXISTS`)
-
-**For MongoDB** (`infrastructure/init-scripts/mongo/01-init.js`):
-- `db = db.getSiblingDB('<db_name>')` for each microservice
-- Create collections, indexes, and JSON Schema validations
-- Insert seed data if needed for development
-
-**For WireMock** (`infrastructure/wiremock/mappings/`):
-- One `.json` stub file per external API endpoint that any microservice consumes (inter-service calls + third-party APIs)
-- Each stub must match the exact request/response contracts specified in the "Inter-Service Dependencies" section (section 7) of the consuming microservice's spec
-- Include both **success stubs** (happy path responses) and **error stubs** (4xx/5xx responses) so developers can test error handling
-- Organize stubs by target service: `infrastructure/wiremock/mappings/<target-service-name>/` (e.g., `ms-inventory/get-product-by-id.json`)
-- The WireMock container port must match the `base URL` documented in each microservice spec's inter-service dependencies
-
-#### Step 3: Start the infrastructure
-
-After creating all files:
-
-1. Run `docker compose -f infrastructure/docker-compose.yml up -d`
-2. Wait for health checks to pass: `docker compose -f infrastructure/docker-compose.yml ps`
-3. Verify databases were created and tables exist:
-   - PostgreSQL: `docker compose -f infrastructure/docker-compose.yml exec postgres psql -U <user> -c "\l"` and verify each DB, then `\dt` per DB
-   - MongoDB: `docker compose -f infrastructure/docker-compose.yml exec mongo mongosh --eval "show dbs"`
-4. Verify messaging is ready:
-   - RabbitMQ: `docker compose -f infrastructure/docker-compose.yml exec rabbitmq rabbitmqctl list_queues` (or check management UI at `http://localhost:15672`)
-
-#### Docker Compose rules:
-- Always use `docker compose` (v2 syntax)
-- Use explicit container names, custom network, health checks for all services
-- Expose ports on localhost with clear port mappings
-- Use environment variables for credentials (with sensible defaults for local dev)
-- Add `restart: unless-stopped` for all containers
-- If a Docker image doesn't exist for a required tool: **STOP**, notify the user, and ask how to proceed
-
-#### Per-microservice connection details
-
-After the infrastructure is running, document the connection details in each microservice spec file (Deliverable 8, section "Infrastructure Connection"). Each microservice must know:
-- Database URL, port, database name, credentials
-- Message broker URL, port, credentials, vhost
-- WireMock base URL for mocked external APIs
-
-**Quality criteria**: After this deliverable completes, `docker compose ps` must show all containers healthy, all databases must have their tables/collections created, and the `backend-java-developer` agent can start coding immediately without provisioning anything.
-
----
-
-### Deliverable 8: Per-Microservice Specifications (Especificaciones por Microservicio)
-
-**Directory**: `docs/design/microservices/`
-**Condition**: **Mandatory if the architecture is Microservices or Microservices + EDA**. Skip for Modular Monolith.
-
-Generate **one `.md` file per microservice** (e.g., `ms-orders.md`, `ms-inventory.md`). Each file must be **completely self-contained** — a developer (or the `backend-java-developer` agent) must be able to build the service **solely from this file** without needing to read any other design document.
-
-**Required sections in each microservice spec file**:
-
-#### 1. Service Overview
-- Service name (kebab-case, e.g., `ms-orders`)
-- Bounded context and business responsibility (1-2 paragraphs)
-- Database type: `postgres` or `mongo`
-- Messaging system: `rabbit-producer`, `rabbit-consumer`, or `none`
-
-#### 2. Technology Stack
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| Runtime | Java | 21 | Language |
-| Framework | Spring Boot | 3.4.x | Reactive microservice |
-| ... | ... | ... | ... |
-
-#### 3. Domain Entities
-For each entity:
-- Entity name and description
-- All fields with types, constraints, and descriptions
-- Relationships with other entities within this service
-- Enums used by this entity
-- Value objects (if any)
-- Domain events emitted by this entity (if any)
-- Domain exceptions
-
-#### 4. Database Schema
-- ER diagram in Mermaid (`erDiagram`) for this service's entities only
-- Data dictionary table per entity (column, type, nullable, default, constraint, description)
-- DDL statements (`CREATE TABLE` / `CREATE INDEX`) for this service only
-- For NoSQL: collection structure, JSON Schema, and index definitions
-
-#### 5. API Endpoints (OpenAPI)
-- Complete OpenAPI 3.x YAML block for this service's endpoints only
-- All HTTP methods, paths, operation descriptions
-- Request bodies with full JSON Schema (all fields, types, validations, required)
-- Response bodies for every HTTP status code (200, 201, 400, 404, 409, 500, etc.)
-- Reusable schemas for DTOs and error responses
-- Pagination, filtering, and sorting parameters where relevant
-
-#### 6. Events / Messaging (if applicable)
-- Events this service **publishes**: event name, exchange, routing key, full JSON Schema payload, example JSON
-- Events this service **consumes**: event name, queue, binding, full JSON Schema payload, expected behavior on receipt
-- DLQ strategy and retry policy for this service
-
-#### 7. Inter-Service Dependencies
-For each external API this service must consume (other microservices or third-party APIs), provide **complete client specifications** so the developer can build the HTTP client without guessing:
-
-**Per dependency:**
-- **Target service name** (e.g., `ms-inventory`, `payment-gateway`)
-- **Base URL environment variable** — the env var name the service must use to configure the client URL (e.g., `MS_INVENTORY_BASE_URL`). During local development, this points to the WireMock container (e.g., `http://localhost:9090`)
-- **Endpoints to consume** — for each endpoint:
-  - HTTP method + path (e.g., `GET /api/v1/products/{id}`)
-  - Path parameters and query parameters with types
-  - **Full request body JSON Schema** (if POST/PUT/PATCH) — all fields, types, required, constraints. Include a complete example JSON.
-  - **Full response body JSON Schema** for each HTTP status code (200, 400, 404, 500) — all fields, types. Include a complete example JSON per status.
-  - Headers required (e.g., `Authorization`, `X-Correlation-Id`)
-- **Error handling strategy** — what this service should do when the dependency returns 4xx, 5xx, or times out (fallback value, propagate error, retry, circuit breaker)
-- **Timeout and retry configuration** — connect timeout, read timeout, max retries, backoff strategy
-- **Circuit breaker configuration** (if applicable) — failure threshold, open duration, half-open behavior
-
-**WireMock stub specification** — for each endpoint above:
-- The exact WireMock stub mapping JSON (request matcher + response definition) that will be created in `infrastructure/wiremock/mappings/`
-- Both success and error stubs so the developer can test error handling
-- Example: `{ "request": { "method": "GET", "urlPathPattern": "/api/v1/products/[a-f0-9-]+" }, "response": { "status": 200, "jsonBody": { ... }, "headers": { "Content-Type": "application/json" } } }`
-
-**Output port interface** — suggest the domain port interface name and methods that the HTTP client adapter will implement (e.g., `ProductServicePort` with `Mono<Product> getProductById(String id)`)
-
-> **Key rule**: The developer must be able to build a fully functional `WebClient`-based adapter from this section alone, including DTOs for request/response, error handling, and configuration pointing to WireMock.
-
-#### 8. Business Rules
-- Validation rules per entity/endpoint
-- Domain constraints and invariants
-- Error scenarios with expected HTTP status codes and error response bodies
-- Authorization/permission rules (if applicable)
-
-#### 9. Component Diagram
-- Mermaid C4 Component diagram for this service specifically
-- Show all internal components: controllers, use cases, domain services, adapters, repositories
-- Hexagonal architecture layers clearly delineated
-
-#### 10. Scaffold Blueprint
-- Complete folder/package tree for this service following Hexagonal Architecture conventions
-- For each module (`domain/model`, `application/use-cases`, `driven-adapters/*`, `entry-points/*`, `app`):
-  - List of classes/interfaces to create with fully qualified package name
-  - Class responsibility (one line)
-  - Key dependencies and which port/adapter it implements
-
-#### 11. Infrastructure Connection
-- Database connection details: host, port, database name, username, password (matching the `infrastructure/docker-compose.yml` configuration)
-- Message broker connection details: host, port, username, password, vhost (if applicable)
-- WireMock base URL for mocked external APIs (if applicable)
-- Environment variables the service must set (with exact names and values for local development)
-- Example `application.yml` / `.env` snippet ready to copy
-
-#### 12. Testing Strategy
-- Unit test scenarios specific to this service's business logic
-- Integration test scenarios for this service's adapters
-- Functional/API test scenarios for this service's endpoints
-- Test data setup requirements
-
-**Quality criteria**: The `backend-java-developer` agent must be able to receive this single file and produce the complete microservice — scaffold it, implement all layers, write all tests — without asking a single clarifying question. If any section requires looking at another document, the spec is incomplete. Infrastructure must already be running (`infrastructure/docker-compose.yml`) with tables/collections created — the developer just connects and codes.
-
----
-
 ## Deliverable Generation Workflow
 
 When designing a solution, follow this strict order:
@@ -495,9 +297,7 @@ When designing a solution, follow this strict order:
 7. **Define Event Schemas** (Deliverable 2) — If messaging is involved (always for EDA, optional for pure microservices), define all events and message schemas. For microservices + EDA, the event catalog from step 3 is the source of truth.
 8. **Document Project Structure** (Deliverable 3) — Blueprint the scaffold with all classes, packages, and responsibilities. For microservices, document each service's structure separately.
 9. **Define Testing Guidelines** (Deliverable 5) — Define unit and integration test strategy per layer. Use `/java-testing-architect`. For microservices + EDA, include contract testing (Pact/Spring Cloud Contract) and messaging integration tests.
-10. **Provision Infrastructure** (Deliverable 7) — Create `infrastructure/docker-compose.yml` with all required containers (databases, messaging, WireMock). Create initialization scripts that auto-create databases, tables/collections, indexes, and seed data. **Start the containers** and verify everything is healthy with tables created. This must complete before generating per-microservice specs so connection details can be included.
-11. **Generate Per-Microservice Specs** (Deliverable 8) — **Only for Microservices / Microservices + EDA**. For each microservice identified, compile all its relevant information from Deliverables 1-6 into a single self-contained spec file in `docs/design/microservices/<service-name>.md`. Include the infrastructure connection details from step 10. Each file must contain everything needed to build that service independently (see Deliverable 8 for all 12 required sections). This is the **primary handoff artifact** to the `backend-java-developer` agent.
-12. **Self-Validate** — Run the verification checklist. Ensure all deliverables are consistent with each other (e.g., API models match DB entities, events reference correct domain objects, scaffold lists all classes needed by the API and events, testing guidelines reference the correct layers from the scaffold). For microservices, also verify that the architecture document from `/microservices-eda-architecture` is consistent with all deliverables, that each per-microservice spec in `docs/design/microservices/` is complete and self-contained, and that infrastructure containers are running with tables/collections created.
+10. **Self-Validate** — Run the verification checklist. Ensure all deliverables are consistent with each other (e.g., API models match DB entities, events reference correct domain objects, scaffold lists all classes needed by the API and events, testing guidelines reference the correct layers from the scaffold). For microservices, also verify that the architecture document from `/microservices-eda-architecture` is consistent with all deliverables.
 
 ---
 
@@ -565,9 +365,6 @@ Before delivering the design, verify **every item**. Do not hand off to developm
 - [ ] `docs/design/scaffold/project-structure.md` lists all classes with packages and responsibilities
 - [ ] `docs/design/events/event-schemas.md` exists (if messaging is in scope) with complete JSON schemas
 - [ ] `docs/design/testing/testing-guidelines.md` contains unit and integration test guidelines per layer
-- [ ] `infrastructure/docker-compose.yml` exists with all infrastructure containers
-- [ ] `infrastructure/init-scripts/` contains DB initialization scripts that match `schema.sql`
-
 ### Cross-Deliverable Consistency
 - [ ] Every entity in the ER model has corresponding `components/schemas` in the OpenAPI spec
 - [ ] Every endpoint in OpenAPI maps to a controller class in the scaffold blueprint
@@ -587,27 +384,6 @@ Before delivering the design, verify **every item**. Do not hand off to developm
 - [ ] Resilience patterns (Circuit Breaker, DLQ, idempotency) are documented per service interaction
 - [ ] Each microservice has its own database (database-per-service enforced)
 - [ ] Communication patterns (choreography/orchestration) match the event flow diagrams
-
-### Infrastructure Readiness
-- [ ] `infrastructure/docker-compose.yml` exists with all required containers
-- [ ] `infrastructure/init-scripts/` contains initialization scripts for all databases
-- [ ] PostgreSQL init script creates all databases and tables (DDL matches `docs/design/database/schema.sql`)
-- [ ] MongoDB init script creates all databases, collections, and indexes
-- [ ] All containers are running and healthy (`docker compose ps` shows healthy status)
-- [ ] Database tables/collections are created and verified
-- [ ] RabbitMQ is running with management plugin (if messaging is in scope)
-- [ ] WireMock stubs are loaded for all external API dependencies (if any)
-
-### Per-Microservice Specs Completeness (if Microservices / Microservices + EDA)
-- [ ] `docs/design/microservices/` directory exists with one `.md` file per microservice
-- [ ] Each spec file contains ALL 12 required sections (overview, tech stack, entities, DB schema, API endpoints, events, dependencies, business rules, component diagram, scaffold blueprint, infrastructure connection, testing strategy)
-- [ ] Each spec is **self-contained** — no section says "see other document" or references external files for essential information
-- [ ] API endpoints in each spec match the corresponding sections in the full OpenAPI spec (Deliverable 1)
-- [ ] DB schema in each spec matches the corresponding tables/collections in the ER model (Deliverable 4)
-- [ ] Events in each spec match the corresponding entries in the event schemas (Deliverable 2)
-- [ ] Scaffold blueprint in each spec matches the corresponding service in the project structure (Deliverable 3)
-- [ ] Infrastructure connection details in each spec match the running `infrastructure/docker-compose.yml` configuration
-- [ ] Each spec includes enough detail for `backend-java-developer` to build the service without clarifying questions
 
 ### Architectural Quality
 - [ ] The architectural style decision (monolith vs microservices vs microservices+EDA) is justified with the scorecard

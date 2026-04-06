@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides ten skills and three agents:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides ten skills and four agents:
 
 **Skills:**
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
@@ -22,7 +22,8 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 
 **Agents:**
 - **requirements-analyst** — Autonomous agent for project planning, requirements analysis, and PRD generation. Produces a PRD and then invokes `/srs-document-builder` to generate the formal IEEE 830 SRS document
-- **software-architect-lead** — Elite Software Architect & Tech Lead agent for architectural design, technical decision-making, solution design, code review, RFC creation, stack selection, and technical documentation. Provisions all infrastructure via Docker Compose (`infrastructure/docker-compose.yml`) with init scripts that create databases and tables automatically. When the architecture is Microservices or Microservices + EDA, generates a self-contained spec file per microservice in `docs/design/microservices/<service-name>.md` with all information needed to build each service independently (entities, DB schema, API endpoints, events, business rules, component diagram, scaffold blueprint, infrastructure connection details, testing strategy).
+- **software-architect-lead** — Elite Software Architect agent for architectural design, technical decision-making, solution design, code review, RFC creation, stack selection, and technical documentation. Evaluates architectural style (Modular Monolith vs Microservices vs Microservices + EDA) via a 5-criteria scorecard and generates design deliverables (C4 diagrams, ER model, OpenAPI spec, event schemas, project structure, testing guidelines).
+- **tech-lead** — Tech Lead agent for infrastructure provisioning and per-microservice specification authoring. Generates Docker Compose infrastructure (`infrastructure/docker-compose.yml`) with init scripts that create databases and tables automatically, and generates self-contained per-microservice spec files in `docs/design/microservices/<service-name>.md` with all information needed to build each service independently (entities, DB schema, API endpoints, events, business rules, component diagram, scaffold blueprint, infrastructure connection details, testing strategy).
 - **backend-java-developer** — Elite Backend Java Developer agent for implementing reactive Spring Boot microservices. Receives the specifications for the service to build (service name, database, messaging, entities, endpoints, events, business rules) and produces production-ready code. Handles initial development, bug fixes, new functionality, and requirement changes. Scaffolds via JBang (`hexagonal-architecture-builder` skill), implements all layers (domain → application → adapters → entry-points), enforces a mandatory compilation verification loop (`mvn clean compile`), runs code quality review, and writes obligatory unit + integration tests (`mvn clean verify` loop until green). Generates development deliverables (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, OpenAPI spec) and a Dockerfile for the service.
 
 ## Architecture
