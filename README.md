@@ -28,7 +28,7 @@ Plugin con diez skills y tres agentes autonomos para el ciclo completo de desarr
 **Agentes autonomos:**
 
 - **requirements-analyst** - Agente autonomo para planificacion de proyectos, analisis de requisitos y generacion de PRD. Produce un PRD y luego invoca `/srs-document-builder` para generar el documento formal SRS (IEEE 830).
-- **software-architect-lead** - Arquitecto de Software & Tech Lead para diseño arquitectonico, decisiones tecnicas, diseño de soluciones, revision de codigo, seleccion de stack y documentacion tecnica. Evalua el estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante un scorecard de 5 criterios antes de generar los entregables obligatorios de diseño. Cuando el resultado es microservicios/EDA, invoca `/microservices-eda-architecture` y genera un spec autocontenido por cada microservicio en `docs/design/microservices/<service-name>.md` con todo lo necesario para construirlo de forma independiente (entidades, esquema BD, endpoints API, eventos, reglas de negocio, diagrama de componentes, blueprint, estrategia de testing).
+- **software-architect-lead** - Arquitecto de Software & Tech Lead para diseño arquitectonico, decisiones tecnicas, diseño de soluciones, revision de codigo, seleccion de stack y documentacion tecnica. Evalua el estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante un scorecard de 5 criterios antes de generar los entregables obligatorios de diseño. Provisiona toda la infraestructura via Docker Compose (`infrastructure/docker-compose.yml`) con scripts de inicializacion que crean bases de datos y tablas automaticamente. Cuando el resultado es microservicios/EDA, invoca `/microservices-eda-architecture` y genera un spec autocontenido por cada microservicio en `docs/design/microservices/<service-name>.md` con todo lo necesario para construirlo de forma independiente (entidades, esquema BD, endpoints API, eventos, reglas de negocio, diagrama de componentes, blueprint, conexion a infraestructura, estrategia de testing).
 - **backend-java-developer** - Desarrollador Backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Recibe las especificaciones del servicio a construir (nombre, base de datos, messaging, entidades, endpoints, eventos, reglas de negocio) y produce codigo listo para produccion. Scaffold via JBang, implementacion de todas las capas (dominio → aplicacion → adaptadores → entry-points), genera Dockerfile del servicio, ciclo obligatorio de verificacion de compilacion (`mvn clean compile`), revision de calidad de codigo, y tests unitarios e integracion obligatorios (`mvn clean verify` en bucle hasta que todos pasen). Genera entregables de desarrollo (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, OpenAPI spec).
 
 ## Instalacion
@@ -117,12 +117,16 @@ Cuando se ejecuta el flujo SDLC completo, el proyecto destino tiene esta estruct
 │   │   ├── scaffold/                        # Blueprint de estructura
 │   │   ├── testing/                         # Lineamientos de testing
 │   │   └── events/                          # Esquemas de eventos (si aplica)
-│   ├── development/                         # Entregables de desarrollo
-│   │   ├── TEST-REPORT.md
-│   │   ├── SERVICE-GUIDE.md
-│   │   ├── CURL-EXAMPLES.md
-│   │   ├── TECH-STACK.md
-│   ���   └── openapi/
+│   └── development/                         # Entregables de desarrollo
+│       ├── TEST-REPORT.md
+│       ├── SERVICE-GUIDE.md
+│       ├── CURL-EXAMPLES.md
+│       ├── TECH-STACK.md
+│       └── openapi/
+├── infrastructure/                          # Infraestructura Docker (creada por software-architect-lead)
+│   ├── docker-compose.yml                   # Contenedores (BD, messaging, mocks)
+│   ├── init-scripts/                        # Scripts de inicializacion de BD
+│   └── wiremock/                            # Stubs de WireMock
 └── <service-name>/                          # Microservicio (arquitectura hexagonal)
     ├── Dockerfile
     └── ...

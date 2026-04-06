@@ -22,7 +22,7 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 | Agente | Descripcion |
 |--------|-------------|
 | `requirements-analyst` | Planificacion de proyectos, analisis de requisitos y generacion de PRD + SRS (IEEE 830) |
-| `software-architect-lead` | Evalua estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante scorecard, genera entregables obligatorios de diseño. Cuando el resultado es microservicios, genera un spec autocontenido por cada servicio en `docs/design/microservices/` con todo lo necesario para construirlo de forma independiente. Invoca `/microservices-eda-architecture` cuando aplica |
+| `software-architect-lead` | Evalua estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante scorecard, genera entregables obligatorios de diseño. Provisiona infraestructura via Docker Compose con init scripts que crean BD y tablas. Genera un spec autocontenido por cada servicio en `docs/design/microservices/` con todo lo necesario para construirlo de forma independiente (incluye conexion a infraestructura). Invoca `/microservices-eda-architecture` cuando aplica |
 | `backend-java-developer` | Desarrollador backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Recibe las especificaciones del servicio a construir (nombre, BD, messaging, entidades, endpoints, eventos, reglas de negocio). Scaffold via JBang, implementacion de todas las capas, genera Dockerfile del servicio, ciclo obligatorio de compilacion (`mvn clean compile`) y tests (`mvn clean verify`). Genera entregables de desarrollo (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, OpenAPI spec) |
 
 ### Flujo de trabajo
