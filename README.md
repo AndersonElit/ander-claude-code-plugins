@@ -10,7 +10,7 @@ Coleccion de plugins para [Claude Code](https://docs.anthropic.com/en/docs/claud
 
 ### springboot-hexagonal-builder
 
-Plugin con once skills y tres agentes autonomos para el ciclo completo de desarrollo backend en Java: desde el analisis de requisitos hasta el diseño arquitectonico, generacion de codigo, modelado de datos y documentacion de APIs.
+Plugin con diez skills y tres agentes autonomos para el ciclo completo de desarrollo backend en Java: desde el analisis de requisitos hasta el diseño arquitectonico, generacion de codigo, modelado de datos y documentacion de APIs.
 
 **Skills:**
 
@@ -23,7 +23,6 @@ Plugin con once skills y tres agentes autonomos para el ciclo completo de desarr
 - **nosql-schema-builder** - Diseña y documenta esquemas NoSQL (MongoDB, DynamoDB, Cassandra), estructuras de colecciones, modelado de documentos (embedding vs referencing), validaciones JSON Schema, estrategias de indexacion y sharding.
 - **openapi-doc-builder** - Genera documentacion de APIs usando especificacion OpenAPI 3.x/Swagger, incluyendo specs YAML, referencia de endpoints, guias de integracion y patrones comunes (paginacion, autenticacion, manejo de errores).
 - **planning** - Guia la recopilacion interactiva de requisitos para tareas de desarrollo mediante entrevista estructurada al usuario.
-- **sdlc-workflow-supervisor** - Orquesta el flujo SDLC completo desde requisitos del cliente hasta el desarrollo, aplicando quality gates y trazabilidad entre fases. Acepta requisitos del cliente como argumento.
 - **microservices-eda-architecture** - Diseña arquitecturas de microservicios y Event-Driven Architecture (EDA) a partir de requisitos de negocio. Cubre descomposicion de dominios (bounded contexts), identificacion de eventos, patrones de comunicacion (coreografia/orquestacion), estrategias de consistencia de datos (Saga, CQRS, Event Sourcing, Outbox) y diseño de resiliencia (Circuit Breaker, DLQ, idempotencia, distributed tracing).
 
 **Agentes autonomos:**
@@ -31,41 +30,6 @@ Plugin con once skills y tres agentes autonomos para el ciclo completo de desarr
 - **requirements-analyst** - Agente autonomo para planificacion de proyectos, analisis de requisitos y generacion de PRD. Produce un PRD y luego invoca `/srs-document-builder` para generar el documento formal SRS (IEEE 830).
 - **software-architect-lead** - Arquitecto de Software & Tech Lead para diseño arquitectonico, decisiones tecnicas, diseño de soluciones, revision de codigo, seleccion de stack y documentacion tecnica. Evalua el estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante un scorecard de 5 criterios antes de generar los entregables obligatorios de diseño. Cuando el resultado es microservicios/EDA, invoca `/microservices-eda-architecture`.
 - **backend-java-developer** - Desarrollador Backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Recibe las especificaciones del servicio a construir (nombre, base de datos, messaging, entidades, endpoints, eventos, reglas de negocio) y produce codigo listo para produccion. Scaffold via JBang, implementacion de todas las capas (dominio → aplicacion → adaptadores → entry-points), genera Dockerfile del servicio, ciclo obligatorio de verificacion de compilacion (`mvn clean compile`), revision de calidad de codigo, y tests unitarios e integracion obligatorios (`mvn clean verify` en bucle hasta que todos pasen). Genera entregables de desarrollo (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, OpenAPI spec).
-
-**Flujo de trabajo:**
-
-```
-Requisitos del cliente
-        |
-        v
-  requirements-analyst  --> PRD (docs/prd/) + SRS (docs/srs/)
-        |
-        v
-  software-architect-lead  --> docs/design/
-        |                      ├── architecture/  (decision de estilo + microservicios/EDA)
-        |                      ├── openapi/       (OpenAPI spec)
-        |                      ├── events/        (esquemas de eventos)
-        |                      ├── scaffold/      (blueprint bajo services/)
-        |                      ├── database/      (ER + schema.sql)
-        |                      ├── testing/       (lineamientos de testing)
-        |                      └── c4/            (diagramas C4)
-        |
-        v
-  backend-java-developer  --> <service-name>/  (recibe specs del servicio)
-        |                      Dockerfile
-        |                      docs/development/
-        |                      ├── TEST-REPORT
-        |                      ├── SERVICE-GUIDE
-        |                      ├── CURL-EXAMPLES
-        |                      ├── TECH-STACK
-        |                      └── openapi/
-        |
-        v
-  software-architect-lead  --> revision arquitectonica
-  (reviewer)                   APROBADO → reporte final
-                               RECHAZADO → REVIEW-CORRECTIONS.md
-                               → re-desarrollo (correcciones quirurgicas, no desde cero)
-```
 
 ## Instalacion
 
@@ -124,8 +88,6 @@ ander-claude-code-plugins/
         │   │   └── references/
         │   ├── planning/
         │   │   └── SKILL.md             # Skill de recopilacion de requisitos
-        │   ├── sdlc-workflow-supervisor/
-        │   │   └── SKILL.md             # Skill orquestador del flujo SDLC
         │   └── microservices-eda-architecture/
         │       ├── SKILL.md             # Skill de arquitectura microservicios/EDA
         │       └── references/
@@ -157,9 +119,7 @@ Cuando se ejecuta el flujo SDLC completo, el proyecto destino tiene esta estruct
 │   │   ├── SERVICE-GUIDE.md
 │   │   ├── CURL-EXAMPLES.md
 │   │   ├── TECH-STACK.md
-│   │   └── openapi/
-│   └── sdlc-report/
-│       └── SDLC-EXECUTION-REPORT.md         # Reporte final del flujo SDLC
+│   ���   └── openapi/
 └── <service-name>/                          # Microservicio (arquitectura hexagonal)
     ├── Dockerfile
     └── ...

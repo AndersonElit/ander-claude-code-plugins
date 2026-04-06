@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A collection of Claude Code plugins (skills) for software development. The repository acts as a plugin marketplace (`/.claude-plugin/marketplace.json`) containing individual plugins under `plugins/`.
 
-Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides eleven skills and three agents:
+Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which provides ten skills and three agents:
 
 **Skills:**
 - **hexagonal-architecture-builder** — Scaffolds reactive Spring Boot 3.4.1 / Java 21 / WebFlux microservices with Hexagonal Architecture using JBang
@@ -18,7 +18,6 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 - **nosql-schema-builder** — Designs and documents NoSQL database schemas (MongoDB, DynamoDB, Cassandra), collection structures, document modeling, JSON Schema validations, and indexing strategies
 - **openapi-doc-builder** — Generates API documentation using OpenAPI 3.x/Swagger specification, including YAML specs, endpoint references, and integration guides
 - **planning** — Guides interactive requirement gathering for development tasks
-- **sdlc-workflow-supervisor** — Orchestrates the full SDLC workflow from raw client requirements to architectural design, enforcing quality gates and traceability between phases. Accepts client requirements as argument.
 - **microservices-eda-architecture** — Designs microservices architectures and Event-Driven Architecture (EDA) systems from business requirements. Covers domain decomposition, event identification, communication patterns (choreography/orchestration), data consistency patterns (Saga, CQRS, Event Sourcing, Outbox), and resilience design (Circuit Breaker, DLQ, idempotency, distributed tracing).
 
 **Agents:**
@@ -84,71 +83,6 @@ claude --plugin-dir ./plugins/springboot-hexagonal-builder
 2. Required frontmatter fields: `name`, `description` (activation triggers — same importance as SKILL.md), `model` (sonnet/opus/haiku), `color`, `memory` (project/user/none)
 3. The `description` field must include example user prompts and assistant responses showing when to invoke the agent
 4. Agents can invoke skills internally via `Skill(skill: "<skill-name>")` and other agents via the Agent tool
-
-## Agent Workflow
-
-The `sdlc-workflow-supervisor` skill orchestrates all three agents sequentially with quality gates and formal INPUT/OUTPUT contracts between phases:
-
-```
-Client Requirements
-        ↓
-┌───────────────────────────────────────────────────────────────┐
-│  sdlc-workflow-supervisor (orchestrator skill)                │
-│                                                               │
-│  ESTADO 0: Ingesta ─────────────────────────────────────────┐ │
-│  │  INPUT:  raw requirements                                │ │
-│  │  Agent:  requirements-analyst                            │ │
-│  │  OUTPUT: docs/prd/PRD-<name>.md + docs/srs/SRS-<name>.md│ │
-│  ├──────────────────────────────────────────────────────────┘ │
-│  │                                                            │
-│  ESTADO 1: Quality Gate (supervisor validates PRD+SRS)        │
-│  │  Score < 10/10 → re-invokes requirements-analyst with gaps │
-│  ├────────────────────────────────────────────────────────────┤
-│  │                                                            │
-│  ESTADO 2: Design Hand-off ─────────────────────────────────┐ │
-│  │  INPUT:  PRD + SRS paths + design roadmap                │ │
-│  │  Agent:  software-architect-lead                         │ │
-│  │  OUTPUT: docs/design/ (architecture/, c4/, openapi/,     │ │
-│  │          database/, scaffold/, testing/, events/)         │ │
-│  ├──────────────────────────────────────────────────────────┘ │
-│  │                                                            │
-│  ESTADO 3: Traceability Audit (RF-XXX ↔ design components)   │
-│  │                                                            │
-│  ESTADO 4: Development ─────────────────────────────────────┐ │
-│  │  INPUT:  service specs (name, db, messaging, entities,   │ │
-│  │          endpoints, events, business rules)               │ │
-│  │  Agent:  backend-java-developer (one per service)        │ │
-│  │  OUTPUT: <service-name>/ + docs/development/*            │ │
-│  ├──────────────────────────────────────────────────────────┘ │
-│  │                                                            │
-│  ESTADO 5: Architectural Review ────────────────────────────┐ │
-│  │  Agent:  software-architect-lead (reviewer)              │ │
-│  │  APPROVED → ESTADO 6                                     │ │
-│  │  REJECTED → REVIEW-CORRECTIONS.md → re-invoke ESTADO 4  │ │
-│  │             (surgical fixes only, reads PROGRESS.md)     │ │
-│  │  Max 3 review cycles                                     │ │
-│  ├──────────────────────────────────────────────────────────┘ │
-│  │                                                            │
-│  ESTADO 6: Execution Report                                   │
-│  │  OUTPUT: docs/sdlc-report/SDLC-EXECUTION-REPORT.md        │
-└───────────────────────────────────────────────────────────────┘
-```
-
-**Agent handoff contracts:**
-- `requirements-analyst` receives raw requirements → outputs PRD + SRS files
-- `software-architect-lead` receives explicit paths to PRD + SRS + a synthesized design roadmap → outputs all design artifacts (scaffold blueprint documents `services/` directory convention)
-- `backend-java-developer` receives the service specifications (name, database, messaging, entities, endpoints, events, business rules) → scaffolds and implements the service, outputs development deliverables in `docs/development/`
-- `software-architect-lead` (reviewer) receives code + development docs + design reference → outputs approval or REVIEW-CORRECTIONS.md
-- The supervisor verifies file existence at each transition before proceeding
-
-**Document output locations:**
-- PRD → `docs/prd/PRD-<project-name>.md`
-- SRS → `docs/srs/SRS-<project-name>.md`
-- Design deliverables → `docs/design/` (architecture/, openapi/, events/, scaffold/, database/, testing/, c4/)
-- Development deliverables → `docs/development/` (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, openapi/)
-- Service source code → `<service-name>/`
-- Review corrections → `docs/development/REVIEW-CORRECTIONS.md` (when architectural review rejects)
-- SDLC Execution Report → `docs/sdlc-report/SDLC-EXECUTION-REPORT.md`
 
 ## Key Conventions
 

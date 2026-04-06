@@ -15,7 +15,6 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 | `nosql-schema-builder` | Diseña esquemas NoSQL (MongoDB, DynamoDB, Cassandra): modelado de documentos, validaciones JSON Schema, indices, sharding |
 | `openapi-doc-builder` | Genera documentacion de APIs con OpenAPI 3.x/Swagger |
 | `planning` | Guia la recopilacion interactiva de requisitos para tareas de desarrollo |
-| `sdlc-workflow-supervisor` | Orquesta el flujo SDLC completo desde requisitos del cliente hasta desarrollo, con quality gates y trazabilidad entre fases |
 | `microservices-eda-architecture` | Diseña arquitecturas de microservicios y EDA: descomposicion de dominios, eventos, patrones de comunicacion (coreografia/orquestacion), consistencia de datos (Saga, CQRS, Event Sourcing, Outbox) y resiliencia (Circuit Breaker, DLQ, idempotencia) |
 
 ## Agentes autonomos
@@ -28,26 +27,11 @@ Plugin para Claude Code que genera microservicios reactivos con Spring Boot sigu
 
 ### Flujo de trabajo
 
-Los tres agentes se usan de forma secuencial, orquestados por `sdlc-workflow-supervisor`:
+Los tres agentes pueden usarse de forma independiente o secuencial:
 
 1. **`requirements-analyst`** recibe los requisitos del cliente → genera PRD (`docs/prd/`) y SRS (`docs/srs/`)
-2. **`software-architect-lead`** recibe el PRD/SRS → evalua el estilo arquitectonico → genera los entregables obligatorios en `docs/design/` (el blueprint documenta la estructura bajo `services/`)
-3. **`backend-java-developer`** recibe las especificaciones del servicio a construir → scaffold → implementa todas las capas → genera Dockerfile → compila → quality review → tests → genera entregables en `docs/development/`
-4. **`software-architect-lead`** (reviewer) revisa el codigo → aprueba o genera `REVIEW-CORRECTIONS.md` → re-invoca al desarrollador para correcciones quirurgicas (max 3 ciclos)
-
-### Entregables obligatorios de diseño
-
-El agente `software-architect-lead` genera estos entregables en `docs/design/`:
-
-| Entregable | Archivo | Skill utilizado |
-|------------|---------|-----------------|
-| Decision de estilo arquitectonico + diseño microservicios/EDA (si aplica) | `architecture/MICROSERVICES-EDA-ARCHITECTURE.md` | `/microservices-eda-architecture` |
-| Especificacion OpenAPI/Swagger | `openapi/openapi-spec.yaml` | `/openapi-doc-builder` |
-| Esquemas de eventos (si aplica) | `events/event-schemas.md` | — |
-| Blueprint de estructura hexagonal | `scaffold/project-structure.md` | — (solo documentacion) |
-| Modelo ER + script DDL | `database/er-model.md` + `database/schema.sql` | `/relational-db-schema-builder` o `/nosql-schema-builder` |
-| Lineamientos de testing | `testing/testing-guidelines.md` | `/java-testing-architect` |
-| Diagramas C4 (Contexto, Contenedores, Componentes) | `c4/c4-diagrams.md` | `/c4-architecture` |
+2. **`software-architect-lead`** recibe el PRD/SRS → evalua el estilo arquitectonico → genera los entregables de diseño en `docs/design/`
+3. **`backend-java-developer`** recibe las especificaciones del servicio a construir ��� scaffold → implementa todas las capas → genera Dockerfile → compila → quality review → tests → genera entregables en `docs/development/`
 
 ## Instalacion
 
