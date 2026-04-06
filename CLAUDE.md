@@ -24,7 +24,7 @@ Currently the only plugin is **springboot-hexagonal-builder** (v1.2.0), which pr
 **Agents:**
 - **requirements-analyst** — Autonomous agent for project planning, requirements analysis, and PRD generation. Produces a PRD and then invokes `/srs-document-builder` to generate the formal IEEE 830 SRS document
 - **software-architect-lead** — Elite Software Architect & Tech Lead agent for architectural design, technical decision-making, solution design, code review, RFC creation, stack selection, and technical documentation
-- **backend-java-developer** — Elite Backend Java Developer agent for implementing reactive Spring Boot microservices based on design documentation. Handles initial development from design specs, bug fixes, new functionality, and requirement changes. Execution arm of Stage 4 (Development) in the SDLC workflow. Processes **one microservice at a time** through the complete cycle (scaffold → implement → compile → quality review → tests) before moving to the next. Maintains a progress tracker (`docs/development/PROGRESS.md`) to track completion status and enable resumption. **Re-reads relevant design docs before each microservice** to prevent context loss. All microservices are generated under `services/` with shared infrastructure in `services/docker-compose.yml`. Enforces a mandatory compilation verification loop (`mvn clean compile`) after each microservice — fixes errors iteratively until the build is clean. Unit and integration tests are obligatory and must strictly follow the testing documentation from the design phase (`docs/design/testing/`); runs `mvn clean verify` in a loop until all tests pass. When re-invoked for architectural review corrections, applies **surgical fixes only** — never re-scaffolds or re-implements completed microservices.
+- **backend-java-developer** — Elite Backend Java Developer agent for implementing reactive Spring Boot microservices. Receives the specifications for the service to build (service name, database, messaging, entities, endpoints, events, business rules) and produces production-ready code. Handles initial development, bug fixes, new functionality, and requirement changes. Scaffolds via JBang (`hexagonal-architecture-builder` skill), implements all layers (domain → application → adapters → entry-points), enforces a mandatory compilation verification loop (`mvn clean compile`), runs code quality review, and writes obligatory unit + integration tests (`mvn clean verify` loop until green). Generates development deliverables (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, OpenAPI spec) and a Dockerfile for the service.
 
 ## Architecture
 
@@ -115,11 +115,10 @@ Client Requirements
 │  ESTADO 3: Traceability Audit (RF-XXX ↔ design components)   │
 │  │                                                            │
 │  ESTADO 4: Development ─────────────────────────────────────┐ │
-│  │  INPUT:  docs/design/ + PRD + SRS                        │ │
-│  │  Agent:  backend-java-developer                          │ │
-│  │  MODE:   One microservice at a time (re-reads docs each) │ │
-│  │  OUTPUT: services/<name>/ + docs/development/*           │ │
-│  │          docs/development/PROGRESS.md (tracker)          │ │
+│  │  INPUT:  service specs (name, db, messaging, entities,   │ │
+│  │          endpoints, events, business rules)               │ │
+│  │  Agent:  backend-java-developer (one per service)        │ │
+│  │  OUTPUT: <service-name>/ + docs/development/*            │ │
 │  ├──────────────────────────────────────────────────────────┘ │
 │  │                                                            │
 │  ESTADO 5: Architectural Review ────────────────────────────┐ │
@@ -138,18 +137,16 @@ Client Requirements
 **Agent handoff contracts:**
 - `requirements-analyst` receives raw requirements → outputs PRD + SRS files
 - `software-architect-lead` receives explicit paths to PRD + SRS + a synthesized design roadmap → outputs all design artifacts (scaffold blueprint documents `services/` directory convention)
-- `backend-java-developer` receives design artifacts + PRD + SRS → creates `services/` directory, generates each microservice under `services/<service-name>/`, shared Docker infra in `services/docker-compose.yml`, outputs development deliverables in `docs/development/` including `PROGRESS.md` tracker
+- `backend-java-developer` receives the service specifications (name, database, messaging, entities, endpoints, events, business rules) → scaffolds and implements the service, outputs development deliverables in `docs/development/`
 - `software-architect-lead` (reviewer) receives code + development docs + design reference → outputs approval or REVIEW-CORRECTIONS.md
-- On review rejection, `backend-java-developer` is re-invoked in **corrections mode** (reads PROGRESS.md, applies surgical fixes only — never re-scaffolds completed services)
 - The supervisor verifies file existence at each transition before proceeding
 
 **Document output locations:**
 - PRD → `docs/prd/PRD-<project-name>.md`
 - SRS → `docs/srs/SRS-<project-name>.md`
 - Design deliverables → `docs/design/` (architecture/, openapi/, events/, scaffold/, database/, testing/, c4/)
-- Development deliverables → `docs/development/` (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, LOCAL-TOOLS, DIAGRAMS, TECH-STACK, openapi/, PROGRESS.md)
-- Microservices source code → `services/<service-name>/` (each microservice in its own subdirectory)
-- Docker infrastructure → `services/docker-compose.yml`
+- Development deliverables → `docs/development/` (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, openapi/)
+- Service source code → `<service-name>/`
 - Review corrections → `docs/development/REVIEW-CORRECTIONS.md` (when architectural review rejects)
 - SDLC Execution Report → `docs/sdlc-report/SDLC-EXECUTION-REPORT.md`
 

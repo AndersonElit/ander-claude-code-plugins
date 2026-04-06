@@ -30,7 +30,7 @@ Plugin con once skills y tres agentes autonomos para el ciclo completo de desarr
 
 - **requirements-analyst** - Agente autonomo para planificacion de proyectos, analisis de requisitos y generacion de PRD. Produce un PRD y luego invoca `/srs-document-builder` para generar el documento formal SRS (IEEE 830).
 - **software-architect-lead** - Arquitecto de Software & Tech Lead para diseño arquitectonico, decisiones tecnicas, diseño de soluciones, revision de codigo, seleccion de stack y documentacion tecnica. Evalua el estilo arquitectonico (Monolito Modular vs Microservicios vs Microservicios + EDA) mediante un scorecard de 5 criterios antes de generar los entregables obligatorios de diseño. Cuando el resultado es microservicios/EDA, invoca `/microservices-eda-architecture`.
-- **backend-java-developer** - Desarrollador Backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Brazo de ejecucion de la Fase 4 (Desarrollo) del flujo SDLC. Procesa **un microservicio a la vez** a traves del ciclo completo (scaffold → implementar → compilar → quality review → tests) antes de pasar al siguiente. Mantiene un tracker de progreso (`docs/development/PROGRESS.md`) para rastrear el estado de cada servicio y permitir reanudacion. **Re-lee la documentacion de diseño relevante antes de cada microservicio** para prevenir perdida de contexto. Genera todos los microservicios bajo `services/` con infraestructura compartida en `services/docker-compose.yml`. Incluye ciclo obligatorio de verificacion de compilacion (`mvn clean compile`) despues de cada microservicio. Tests unitarios e integracion obligatorios segun `docs/design/testing/`; ejecuta `mvn clean verify` en bucle hasta que todos los tests pasen. Cuando es re-invocado por correcciones de revision arquitectonica, aplica **cambios quirurgicos unicamente** — nunca re-scaffoldea o re-implementa microservicios ya completados.
+- **backend-java-developer** - Desarrollador Backend Java especializado en microservicios reactivos con Spring Boot y Arquitectura Hexagonal. Recibe las especificaciones del servicio a construir (nombre, base de datos, messaging, entidades, endpoints, eventos, reglas de negocio) y produce codigo listo para produccion. Scaffold via JBang, implementacion de todas las capas (dominio → aplicacion → adaptadores → entry-points), genera Dockerfile del servicio, ciclo obligatorio de verificacion de compilacion (`mvn clean compile`), revision de calidad de codigo, y tests unitarios e integracion obligatorios (`mvn clean verify` en bucle hasta que todos pasen). Genera entregables de desarrollo (TEST-REPORT, SERVICE-GUIDE, CURL-EXAMPLES, TECH-STACK, OpenAPI spec).
 
 **Flujo de trabajo:**
 
@@ -51,13 +51,13 @@ Requisitos del cliente
         |                      └── c4/            (diagramas C4)
         |
         v
-  backend-java-developer  --> services/<service-name>/  (un microservicio a la vez)
-        |                      services/docker-compose.yml
+  backend-java-developer  --> <service-name>/  (recibe specs del servicio)
+        |                      Dockerfile
         |                      docs/development/
-        |                      ├── PROGRESS.md    (tracker de progreso)
         |                      ├── TEST-REPORT
         |                      ├── SERVICE-GUIDE
         |                      ├── CURL-EXAMPLES
+        |                      ├── TECH-STACK
         |                      └── openapi/
         |
         v
@@ -153,20 +153,15 @@ Cuando se ejecuta el flujo SDLC completo, el proyecto destino tiene esta estruct
 │   │   ├── testing/                         # Lineamientos de testing
 │   │   └── events/                          # Esquemas de eventos (si aplica)
 │   ├── development/                         # Entregables de desarrollo
-│   │   ├── PROGRESS.md                      # Tracker de progreso por microservicio
 │   │   ├── TEST-REPORT.md
 │   │   ├── SERVICE-GUIDE.md
 │   │   ├── CURL-EXAMPLES.md
-│   │   ├── LOCAL-TOOLS.md
-│   │   ├── DIAGRAMS.md
 │   │   ├── TECH-STACK.md
 │   │   └── openapi/
 │   └── sdlc-report/
 │       └── SDLC-EXECUTION-REPORT.md         # Reporte final del flujo SDLC
-└── services/                                # Codigo fuente e infraestructura
-    ├── docker-compose.yml                   # Infraestructura compartida (DB, messaging, mocks)
-    ├── ms-orders/                           # Microservicio (arquitectura hexagonal)
-    ├── ms-inventory/                        # Microservicio
+└── <service-name>/                          # Microservicio (arquitectura hexagonal)
+    ├── Dockerfile
     └── ...
 ```
 
